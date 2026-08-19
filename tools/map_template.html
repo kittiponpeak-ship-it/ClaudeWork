@@ -1,0 +1,682 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Retail Delivery Mapping — มิถุนายน 2026</title>
+<style>/*__LEAFLET_CSS__*/</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --blue:#1a73e8; --blue-dark:#1557b0; --ink:#202124; --muted:#5f6368;
+  --line:#dadce0; --bg:#f1f3f4; --card:#fff; --radius:10px;
+  --shadow:0 1px 2px rgba(60,64,67,.3), 0 2px 6px 2px rgba(60,64,67,.15);
+  --shadow-sm:0 1px 3px rgba(60,64,67,.24);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;font-family:'Sarabun',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  color:var(--ink);background:var(--bg);font-size:13.5px;-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+h1,h2,h3{margin:0}
+
+/* ---------- top bar ---------- */
+.topbar{display:flex;align-items:center;gap:14px;padding:9px 16px;background:var(--card);
+  border-bottom:1px solid var(--line);box-shadow:var(--shadow-sm);position:relative;z-index:1200;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.brand .pin{width:30px;height:30px;flex:0 0 auto}
+.brand h1{font-size:16px;font-weight:700;letter-spacing:.1px;white-space:nowrap}
+.brand .sub{font-size:11.5px;color:var(--muted);white-space:nowrap}
+.kpis{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap}
+.kpi{background:#f8f9fa;border:1px solid var(--line);border-radius:8px;padding:5px 12px;min-width:96px}
+.kpi b{display:block;font-size:15px;line-height:1.25;font-variant-numeric:tabular-nums}
+.kpi span{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.kpi.accent b{color:var(--blue)}
+.viewtabs{display:flex;background:#f1f3f4;border-radius:999px;padding:3px;gap:2px}
+.viewtabs button{border:0;background:transparent;padding:6px 14px;border-radius:999px;cursor:pointer;
+  font-weight:600;font-size:12.5px;color:var(--muted)}
+.viewtabs button.on{background:var(--card);color:var(--blue);box-shadow:var(--shadow-sm)}
+
+/* ---------- layout ---------- */
+.layout{display:flex;height:calc(100vh - 53px);min-height:520px}
+aside{background:var(--card);overflow-y:auto;flex:0 0 auto}
+#filters{width:296px;border-right:1px solid var(--line);padding:12px 14px 40px}
+#insights{width:322px;border-left:1px solid var(--line);padding:12px 14px 40px}
+main{flex:1 1 auto;position:relative;min-width:0}
+#map{position:absolute;inset:0;background:#e8eaed}
+
+/* ---------- filter widgets ---------- */
+.fgroup{margin-bottom:16px}
+.flabel{display:flex;align-items:center;justify-content:space-between;font-size:11.5px;font-weight:700;
+  color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px}
+.flabel a{color:var(--blue);text-decoration:none;cursor:pointer;font-weight:600;text-transform:none;letter-spacing:0;font-size:11.5px}
+.search{position:relative}
+.search svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);opacity:.55}
+.search input{width:100%;padding:10px 12px 10px 34px;border:1px solid var(--line);border-radius:999px;
+  background:#f8f9fa;outline:0}
+.search input:focus{background:#fff;border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,115,232,.12)}
+.dates{display:flex;gap:6px;align-items:center}
+.dates input{flex:1;min-width:0;padding:7px 8px;border:1px solid var(--line);border-radius:6px;background:#fff}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:#fff;
+  border-radius:999px;padding:5px 11px;cursor:pointer;font-size:12px;user-select:none;transition:.12s}
+.chip:hover{background:#f1f3f4}
+.chip .dot{width:9px;height:9px;border-radius:50%;flex:0 0 auto}
+.chip .n{color:var(--muted);font-size:11px;font-variant-numeric:tabular-nums}
+.chip.on{background:#e8f0fe;border-color:#c6dafc;color:var(--blue-dark);font-weight:600}
+.chip.on .n{color:var(--blue)}
+.listbox{border:1px solid var(--line);border-radius:8px;max-height:216px;overflow-y:auto;background:#fff}
+.listbox label{display:flex;gap:8px;align-items:center;padding:6px 10px;cursor:pointer;font-size:12.4px;border-bottom:1px solid #f1f3f4}
+.listbox label:last-child{border-bottom:0}
+.listbox label:hover{background:#f8f9fa}
+.listbox input{accent-color:var(--blue);flex:0 0 auto}
+.listbox .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.listbox .vl{color:var(--muted);font-size:11px;font-variant-numeric:tabular-nums}
+.mini{width:100%;padding:7px 10px;border:1px solid var(--line);border-radius:6px;margin-bottom:6px;background:#f8f9fa}
+.rangewrap{display:flex;align-items:center;gap:8px}
+.rangewrap input[type=range]{flex:1;accent-color:var(--blue)}
+.rangewrap b{font-size:12px;min-width:76px;text-align:right;font-variant-numeric:tabular-nums}
+.switch{display:flex;align-items:center;justify-content:space-between;padding:7px 0;font-size:12.5px;cursor:pointer}
+.switch input{accent-color:var(--blue);width:16px;height:16px}
+.btnrow{display:flex;gap:8px;margin-top:4px}
+.btn{flex:1;border:1px solid var(--line);background:#fff;border-radius:8px;padding:9px;cursor:pointer;
+  font-weight:600;font-size:12.5px;display:flex;align-items:center;justify-content:center;gap:6px}
+.btn:hover{background:#f1f3f4}
+.btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+.btn.primary:hover{background:var(--blue-dark)}
+
+/* ---------- map overlays ---------- */
+.legend{position:absolute;left:12px;bottom:24px;z-index:800;background:rgba(255,255,255,.96);
+  border-radius:8px;box-shadow:var(--shadow);padding:9px 12px;max-width:230px}
+.legend h3{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:6px}
+.legend .it{display:flex;align-items:center;gap:7px;font-size:12px;padding:1.5px 0}
+.legend .it i{width:10px;height:10px;border-radius:50%;display:inline-block;flex:0 0 auto}
+.legend .scale{margin-top:7px;padding-top:7px;border-top:1px solid var(--line);color:var(--muted);font-size:11px}
+.maptools{position:absolute;right:12px;top:12px;z-index:800;display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+.basesel{background:var(--card);border:0;border-radius:8px;box-shadow:var(--shadow);padding:8px 10px;font-size:12.5px;cursor:pointer}
+.iconbtn{background:var(--card);border:0;border-radius:8px;box-shadow:var(--shadow);width:38px;height:38px;
+  cursor:pointer;font-size:17px;display:grid;place-items:center}
+.iconbtn:hover{background:#f1f3f4}
+.emptymap{position:absolute;inset:0;display:none;place-items:center;z-index:700;pointer-events:none}
+.emptymap span{background:rgba(32,33,36,.86);color:#fff;padding:9px 16px;border-radius:999px;font-size:13px}
+
+/* leaflet popup as a google-ish card */
+.leaflet-popup-content-wrapper{border-radius:10px;box-shadow:var(--shadow);padding:0}
+.leaflet-popup-content{margin:0;width:308px !important;font-family:inherit;font-size:13px}
+.pop{padding:13px 15px 12px}
+.pop .badge{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#fff;
+  padding:3px 9px;border-radius:999px;margin-bottom:7px}
+.pop h4{margin:0 0 3px;font-size:15px;font-weight:700;line-height:1.3}
+.pop .addr{color:var(--muted);font-size:12px;margin-bottom:9px}
+.pop .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:9px}
+.pop .grid div{background:#f8f9fa;border-radius:8px;padding:7px 9px}
+.pop .grid b{display:block;font-size:14.5px;font-variant-numeric:tabular-nums}
+.pop .grid span{font-size:10.5px;color:var(--muted)}
+.pop .rows{max-height:150px;overflow:auto;border-top:1px solid var(--line);padding-top:7px}
+.pop .rows .r{display:flex;justify-content:space-between;gap:8px;padding:3px 0;font-size:12px;border-bottom:1px dashed #eceff1}
+.pop .rows .r span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pop .rows .r b{font-variant-numeric:tabular-nums;white-space:nowrap}
+.pop .gm{display:inline-flex;align-items:center;gap:6px;margin-top:9px;color:var(--blue);
+  text-decoration:none;font-weight:600;font-size:12.5px}
+.pop .tags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px}
+.pop .tags i{font-style:normal;background:#e8f0fe;color:var(--blue-dark);border-radius:4px;padding:2px 6px;font-size:10.5px;font-weight:600}
+
+/* ---------- insights ---------- */
+.card{border:1px solid var(--line);border-radius:var(--radius);padding:11px 12px;margin-bottom:12px}
+.card h2{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:9px;
+  display:flex;justify-content:space-between;align-items:center}
+.bar{margin-bottom:8px}
+.bar .top{display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;gap:8px}
+.bar .top span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar .top b{font-variant-numeric:tabular-nums;white-space:nowrap}
+.bar .track{height:7px;background:#f1f3f4;border-radius:99px;overflow:hidden}
+.bar .fill{height:100%;border-radius:99px}
+.rank{display:flex;gap:9px;align-items:flex-start;padding:8px 6px;border-radius:8px;cursor:pointer;border-bottom:1px solid #f1f3f4}
+.rank:hover{background:#f8f9fa}
+.rank .no{width:20px;height:20px;border-radius:50%;background:#f1f3f4;color:var(--muted);font-size:11px;
+  font-weight:700;display:grid;place-items:center;flex:0 0 auto;margin-top:1px}
+.rank .nm{flex:1;min-width:0}
+.rank .nm div:first-child{font-weight:600;font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rank .nm div:last-child{color:var(--muted);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rank .vl{font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.spark{width:100%;height:78px;display:block}
+.spark rect{fill:var(--blue);opacity:.85}
+.spark rect:hover{opacity:1;fill:var(--blue-dark)}
+.axis{font-size:9.5px;fill:var(--muted)}
+
+/* ---------- table ---------- */
+#tableView{position:absolute;inset:0;background:var(--card);overflow:auto;display:none;padding:0 0 40px;z-index:1000}
+table{background:var(--card)}
+table{border-collapse:collapse;width:100%;font-size:12.4px}
+thead th{position:sticky;top:0;background:#f8f9fa;border-bottom:1px solid var(--line);text-align:left;
+  padding:9px 10px;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);white-space:nowrap;z-index:2;cursor:pointer}
+thead th:hover{color:var(--blue)}
+tbody td{padding:7px 10px;border-bottom:1px solid #f1f3f4;vertical-align:top}
+tbody tr:hover{background:#f8f9fa}
+td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tag{display:inline-block;border-radius:4px;padding:1px 6px;font-size:10.5px;font-weight:600;color:#fff}
+.tag.warn{background:#f9ab00}.tag.bad{background:#d93025}.tag.grey{background:#9aa0a6}
+.more{padding:14px;text-align:center;color:var(--muted)}
+.nogeo{color:#d93025;font-size:11px}
+
+/* ---------- fallback plot ---------- */
+#fallback{position:absolute;inset:0;display:none;background:#eaf1f5}
+#fallback svg{width:100%;height:100%}
+.fbnote{position:absolute;left:12px;top:12px;z-index:5;background:rgba(255,255,255,.95);border-radius:8px;
+  padding:8px 12px;box-shadow:var(--shadow);font-size:12px;max-width:340px}
+.hint{font-size:11px;color:var(--muted);margin-top:5px;line-height:1.45}
+@media (max-width:1180px){#insights{display:none}}
+@media (max-width:860px){
+  .layout{flex-direction:column;height:auto}
+  #filters{width:100%;border-right:0;border-bottom:1px solid var(--line);max-height:none}
+  main{height:70vh;min-height:420px}
+  .kpis{width:100%;margin-left:0}
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <svg class="pin" viewBox="0 0 24 24" fill="none"><path d="M12 2c-4 0-7.2 3.2-7.2 7.2C4.8 14.6 12 22 12 22s7.2-7.4 7.2-12.8C19.2 5.2 16 2 12 2z" fill="#ea4335"/><circle cx="12" cy="9.2" r="2.8" fill="#fff"/></svg>
+    <div>
+      <h1>Retail Delivery Mapping</h1>
+      <div class="sub" id="srcline">—</div>
+    </div>
+  </div>
+  <div class="viewtabs">
+    <button id="tabMap" class="on">🗺️ แผนที่</button>
+    <button id="tabTable">📋 ตาราง</button>
+  </div>
+  <div class="kpis">
+    <div class="kpi accent"><b id="kValue">—</b><span>ยอดรวม (บาท)</span></div>
+    <div class="kpi"><b id="kDocs">—</b><span>ใบส่งของ</span></div>
+    <div class="kpi"><b id="kShip">—</b><span>จุดส่ง</span></div>
+    <div class="kpi"><b id="kCust">—</b><span>ลูกค้า</span></div>
+    <div class="kpi"><b id="kAvg">—</b><span>เฉลี่ย/บิล</span></div>
+  </div>
+</header>
+
+<div class="layout">
+  <!-- ============ FILTERS ============ -->
+  <aside id="filters">
+    <div class="fgroup">
+      <div class="search">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        <input id="q" type="search" placeholder="ค้นหา ลูกค้า / จุดส่ง / เลขที่บิล / ที่อยู่">
+      </div>
+    </div>
+
+    <div class="fgroup">
+      <div class="flabel">ช่วงวันที่ <a id="dateReset">ทั้งเดือน</a></div>
+      <div class="dates"><input id="dFrom" type="date"><span>–</span><input id="dTo" type="date"></div>
+    </div>
+
+    <div class="fgroup">
+      <div class="flabel">กลุ่มค้าปลีก (Retail) <a data-clear="chain">ล้าง</a></div>
+      <div class="chips" id="fChain"></div>
+    </div>
+
+    <div class="fgroup">
+      <div class="flabel">Route (สายวิ่ง) <a data-clear="route">ล้าง</a></div>
+      <div class="chips" id="fRoute"></div>
+    </div>
+
+    <div class="fgroup">
+      <div class="flabel">ภูมิภาค <a data-clear="region">ล้าง</a></div>
+      <div class="chips" id="fRegion"></div>
+    </div>
+
+    <div class="fgroup">
+      <div class="flabel">สถานะ <a data-clear="status">ล้าง</a></div>
+      <div class="chips" id="fStatus"></div>
+    </div>
+
+    <div class="fgroup">
+      <div class="flabel">ลูกค้า (Customer Name) <a data-clear="cust">ล้าง</a></div>
+      <input class="mini" id="custSearch" placeholder="พิมพ์เพื่อกรองรายชื่อ…">
+      <div class="listbox" id="fCust"></div>
+    </div>
+
+    <div class="fgroup">
+      <div class="flabel">มูลค่าขั้นต่ำต่อบิล</div>
+      <div class="rangewrap"><input id="minVal" type="range" min="0" max="100" value="0"><b id="minValLbl">0</b></div>
+    </div>
+
+    <div class="fgroup">
+      <div class="flabel">การแสดงผล</div>
+      <label class="switch"><span>ขนาดจุดตามมูลค่า</span><input type="checkbox" id="optSize" checked></label>
+      <label class="switch"><span>โหมด Heatmap</span><input type="checkbox" id="optHeat"></label>
+      <label class="switch"><span>แสดงชื่อจุดบนแผนที่</span><input type="checkbox" id="optLabel"></label>
+    </div>
+
+    <div class="btnrow">
+      <button class="btn" id="btnReset">↺ ล้างตัวกรอง</button>
+      <button class="btn primary" id="btnCsv">⤓ CSV</button>
+    </div>
+    <div class="hint" id="coordNote"></div>
+  </aside>
+
+  <!-- ============ MAP ============ -->
+  <main>
+    <div id="map"></div>
+    <div id="fallback">
+      <div class="fbnote"><b>โหมดออฟไลน์</b><br>โหลดแผนที่ (Leaflet/CDN) ไม่สำเร็จ — กำลังแสดงผังพิกัดแบบย่อแทน<br>ตัวกรองและตารางยังใช้งานได้ตามปกติ</div>
+      <svg id="fbSvg"></svg>
+    </div>
+    <div class="emptymap" id="emptyMap"><span>ไม่พบข้อมูลตามตัวกรองที่เลือก</span></div>
+    <div class="maptools">
+      <select class="basesel" id="baseSel">
+        <option value="voyager">แผนที่ (Google style)</option>
+        <option value="osm">ถนน (OSM)</option>
+        <option value="light">โทนสว่าง</option>
+        <option value="sat">ดาวเทียม</option>
+      </select>
+      <button class="iconbtn" id="btnFit" title="ซูมให้เห็นทุกจุด">⤢</button>
+      <button class="iconbtn" id="btnBkk" title="ไปกรุงเทพฯ">🏙️</button>
+    </div>
+    <div class="legend" id="legend"></div>
+    <div id="tableView">
+      <table id="tbl">
+        <thead><tr>
+          <th data-k="date">วันที่</th><th data-k="doc">เลขที่บิล</th><th data-k="cust">ลูกค้า</th>
+          <th data-k="ship">จุดส่ง (ShipTo)</th><th data-k="route">Route</th>
+          <th data-k="chain">กลุ่ม</th><th data-k="value" class="num">มูลค่า</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+      <div class="more" id="tblMore"></div>
+    </div>
+  </main>
+
+  <!-- ============ INSIGHTS ============ -->
+  <aside id="insights">
+    <div class="card">
+      <h2>ยอดตามกลุ่มค้าปลีก</h2>
+      <div id="chainBars"></div>
+    </div>
+    <div class="card">
+      <h2>ยอดรายวัน</h2>
+      <svg class="spark" id="daily" viewBox="0 0 320 78" preserveAspectRatio="none"></svg>
+      <div class="hint" id="dailyHint"></div>
+    </div>
+    <div class="card">
+      <h2>Top จุดส่ง <span id="topCount"></span></h2>
+      <div id="topList"></div>
+    </div>
+    <div class="card">
+      <h2>ยอดตาม Route</h2>
+      <div id="routeBars"></div>
+    </div>
+  </aside>
+</div>
+
+<script>/*__LEAFLET_JS__*/</script>
+<script>/*__HEAT_JS__*/</script>
+<script>
+const DATA = /*__DATA__*/null;
+const ROWS = DATA.rows, COLORS = DATA.colors;
+const OTHER_COLOR = '#80868b';
+const nf0 = new Intl.NumberFormat('th-TH',{maximumFractionDigits:0});
+const nf2 = new Intl.NumberFormat('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});
+const colorOf = c => COLORS[c] || OTHER_COLOR;
+const money = v => v>=1e6 ? (v/1e6).toFixed(2)+'M' : v>=1e3 ? nf0.format(Math.round(v)) : nf0.format(v);
+const esc = s => String(s==null?'':s).replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+
+/* ---------------- dimension values ---------------- */
+const uniq = key => {
+  const m = new Map();
+  ROWS.forEach(r => { const k = r[key] || '(ไม่ระบุ)'; const o = m.get(k) || {n:0,v:0}; o.n++; o.v += r.value; m.set(k,o); });
+  return [...m.entries()].sort((a,b)=>b[1].v-a[1].v);
+};
+const DIM = {chain:uniq('chain'), route:uniq('route'), region:uniq('region'), status:uniq('status'), cust:uniq('cust')};
+const DATES = ROWS.map(r=>r.date).filter(Boolean).sort();
+const MINDATE = DATES[0], MAXDATE = DATES[DATES.length-1];
+const MAXROWVAL = Math.max(...ROWS.map(r=>r.value));
+
+const state = {q:'', from:MINDATE, to:MAXDATE, minVal:0,
+  sets:{chain:new Set(), route:new Set(), region:new Set(), status:new Set(), cust:new Set()},
+  size:true, heat:false, labels:false, sortKey:'value', sortDir:-1};
+
+/* ---------------- filtering ---------------- */
+function pass(r){
+  if(state.q){
+    const q = state.q.toLowerCase();
+    const hay = (r.cust+' '+r.ship+' '+r.doc+' '+r.addr+' '+r.code+' '+r.remark+' '+r.route).toLowerCase();
+    if(!hay.includes(q)) return false;
+  }
+  if(r.date){ if(r.date < state.from || r.date > state.to) return false; }
+  if(r.value < state.minVal) return false;
+  for(const k of ['chain','route','region','status','cust']){
+    const s = state.sets[k];
+    if(s.size && !s.has(r[k] || '(ไม่ระบุ)')) return false;
+  }
+  return true;
+}
+let filtered = [];
+
+/* ---------------- map ---------------- */
+const HAS_LEAFLET = typeof L !== 'undefined';
+let map, layer, heat, baseLayers = {}, currentBase;
+const BKK = [13.7563,100.5018];
+
+if(HAS_LEAFLET){
+  map = L.map('map',{zoomControl:true,preferCanvas:true}).setView([13.2,100.9],6);
+  const attr = '&copy; OpenStreetMap contributors';
+  baseLayers = {
+    voyager: L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{maxZoom:19,attribution:attr+' &copy; CARTO'}),
+    osm:     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:attr}),
+    light:   L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{maxZoom:19,attribution:attr+' &copy; CARTO'}),
+    sat:     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'&copy; Esri'})
+  };
+  currentBase = baseLayers.voyager.addTo(map);
+  layer = L.layerGroup().addTo(map);
+  L.control.scale({imperial:false,position:'bottomright'}).addTo(map);
+}else{
+  document.getElementById('map').style.display='none';
+  document.getElementById('fallback').style.display='block';
+}
+
+/* group filtered rows into map points keyed by coordinate */
+function points(rows){
+  const m = new Map();
+  for(const r of rows){
+    if(r.lat==null || r.lon==null) continue;
+    const k = r.lat+','+r.lon;
+    let p = m.get(k);
+    if(!p){ p = {lat:r.lat, lon:r.lon, value:0, n:0, ships:new Map(), chains:new Map(), routes:new Set(), custs:new Set()}; m.set(k,p); }
+    p.value += r.value; p.n++;
+    p.ships.set(r.ship,(p.ships.get(r.ship)||0)+r.value);
+    p.chains.set(r.chain,(p.chains.get(r.chain)||0)+r.value);
+    if(r.route) p.routes.add(r.route);
+    p.custs.add(r.cust);
+  }
+  for(const p of m.values()){
+    p.chain = [...p.chains.entries()].sort((a,b)=>b[1]-a[1])[0][0];
+    p.title = [...p.ships.entries()].sort((a,b)=>b[1]-a[1])[0][0];
+  }
+  return [...m.values()].sort((a,b)=>b.value-a.value);
+}
+
+function popupHtml(p){
+  const ships = [...p.ships.entries()].sort((a,b)=>b[1]-a[1]);
+  const rows = ships.slice(0,40).map(([s,v])=>`<div class="r"><span>${esc(s)}</span><b>${nf0.format(Math.round(v))}</b></div>`).join('');
+  const tags = [...p.routes].slice(0,8).map(r=>`<i>${/^\d+$/.test(r)?'R'+esc(r):esc(r)}</i>`).join('');
+  return `<div class="pop">
+    <span class="badge" style="background:${colorOf(p.chain)}">${esc(p.chain)}</span>
+    <h4>${esc(p.title)}</h4>
+    <div class="addr">${ships.length>1?ships.length+' จุดส่งที่พิกัดนี้ · ':''}${p.lat.toFixed(5)}, ${p.lon.toFixed(5)}</div>
+    ${tags?`<div class="tags">${tags}</div>`:''}
+    <div class="grid">
+      <div><b>${nf0.format(Math.round(p.value))}</b><span>มูลค่ารวม (บาท)</span></div>
+      <div><b>${nf0.format(p.n)}</b><span>ใบส่งของ</span></div>
+    </div>
+    <div class="rows">${rows}${ships.length>40?`<div class="r"><span>…อีก ${ships.length-40} จุด</span></div>`:''}</div>
+    <a class="gm" href="https://www.google.com/maps?q=${p.lat},${p.lon}" target="_blank" rel="noopener">↗ เปิดใน Google Maps</a>
+  </div>`;
+}
+
+let markers = [];
+function drawMap(pts){
+  if(!HAS_LEAFLET){ drawFallback(pts); return; }
+  layer.clearLayers(); markers = [];
+  if(heat){ map.removeLayer(heat); heat = null; }
+  const maxV = pts.length ? pts[0].value : 1;
+  if(state.heat && L.heatLayer){
+    heat = L.heatLayer(pts.map(p=>[p.lat,p.lon,Math.max(.12,Math.sqrt(p.value/maxV))]),
+      {radius:34,blur:24,maxZoom:12,gradient:{0.2:'#4285f4',0.45:'#34a853',0.65:'#fbbc04',0.85:'#ea4335'}}).addTo(map);
+  }
+  pts.forEach((p,i)=>{
+    const r = state.size ? 6 + 24*Math.sqrt(p.value/maxV) : 8;
+    const mk = L.circleMarker([p.lat,p.lon],{radius:r,color:'#fff',weight:1.6,opacity:.95,
+      fillColor:colorOf(p.chain),fillOpacity:state.heat?.55:.82}).addTo(layer);
+    mk.bindPopup(popupHtml(p),{maxWidth:340});
+    mk.bindTooltip(`<b>${esc(p.title)}</b><br>${money(p.value)} บาท · ${p.n} บิล`,{direction:'top',offset:[0,-4]});
+    if(state.labels && i<40){
+      L.marker([p.lat,p.lon],{icon:L.divIcon({className:'',html:'',iconSize:[0,0]}),interactive:false})
+        .bindTooltip(p.title.length>26?p.title.slice(0,26)+'…':p.title,{permanent:true,direction:'right',offset:[r,0],className:'ptlabel'})
+        .addTo(layer);
+    }
+    markers.push(mk);
+  });
+  document.getElementById('emptyMap').style.display = pts.length ? 'none' : 'grid';
+}
+
+function fit(pts){
+  if(!pts.length) return;
+  if(HAS_LEAFLET) map.fitBounds(L.latLngBounds(pts.map(p=>[p.lat,p.lon])).pad(.12),{maxZoom:14});
+}
+
+/* SVG fallback scatter when Leaflet/CDN is unavailable */
+function drawFallback(pts){
+  const svg = document.getElementById('fbSvg');
+  const w = svg.clientWidth || 800, h = svg.clientHeight || 600;
+  if(!pts.length){ svg.innerHTML=''; return; }
+  const lats = pts.map(p=>p.lat), lons = pts.map(p=>p.lon);
+  const la0=Math.min(...lats), la1=Math.max(...lats), lo0=Math.min(...lons), lo1=Math.max(...lons);
+  const pad=40, sx=(w-2*pad)/Math.max(.0001,lo1-lo0), sy=(h-2*pad)/Math.max(.0001,la1-la0), s=Math.min(sx,sy);
+  const cx=(w-(lo1-lo0)*s)/2, cy=(h-(la1-la0)*s)/2;
+  const maxV=pts[0].value;
+  svg.setAttribute('viewBox',`0 0 ${w} ${h}`);
+  svg.innerHTML = pts.map(p=>{
+    const x=cx+(p.lon-lo0)*s, y=cy+(la1-p.lat)*s;
+    const r=state.size ? 4+18*Math.sqrt(p.value/maxV) : 6;
+    return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(1)}" fill="${colorOf(p.chain)}" fill-opacity=".8" stroke="#fff" stroke-width="1.4"><title>${esc(p.title)} — ${nf0.format(Math.round(p.value))} บาท / ${p.n} บิล</title></circle>`;
+  }).join('');
+}
+
+/* ---------------- UI builders ---------------- */
+function chipRow(el, dim, key){
+  el.innerHTML = dim.map(([name,o])=>{
+    const dot = key==='chain' ? `<i class="dot" style="background:${colorOf(name)}"></i>` : '';
+    return `<span class="chip" data-v="${esc(name)}">${dot}${esc(name)}<span class="n">${o.n}</span></span>`;
+  }).join('');
+  el.onclick = e => {
+    const c = e.target.closest('.chip'); if(!c) return;
+    const v = c.dataset.v, s = state.sets[key];
+    s.has(v) ? s.delete(v) : s.add(v);
+    c.classList.toggle('on', s.has(v));
+    render();
+  };
+}
+function custList(term=''){
+  const box = document.getElementById('fCust');
+  const t = term.toLowerCase();
+  const items = DIM.cust.filter(([n])=>!t || n.toLowerCase().includes(t)).slice(0,300);
+  box.innerHTML = items.map(([n,o])=>`<label><input type="checkbox" value="${esc(n)}" ${state.sets.cust.has(n)?'checked':''}>
+    <span class="nm" title="${esc(n)}">${esc(n)}</span><span class="vl">${money(o.v)}</span></label>`).join('')
+    || '<div class="more">ไม่พบรายชื่อ</div>';
+}
+document.getElementById('fCust').onchange = e => {
+  if(e.target.type!=='checkbox') return;
+  const s = state.sets.cust;
+  e.target.checked ? s.add(e.target.value) : s.delete(e.target.value);
+  render();
+};
+
+function bars(el, entries, colorFn){
+  const max = entries.length ? entries[0][1] : 1;
+  el.innerHTML = entries.map(([k,v])=>`<div class="bar">
+    <div class="top"><span>${esc(k)}</span><b>${money(v)}</b></div>
+    <div class="track"><div class="fill" style="width:${(v/max*100).toFixed(1)}%;background:${colorFn(k)}"></div></div>
+  </div>`).join('') || '<div class="hint">ไม่มีข้อมูล</div>';
+}
+
+function daily(rows){
+  const m = new Map();
+  rows.forEach(r=>{ if(r.date) m.set(r.date,(m.get(r.date)||0)+r.value); });
+  const days = [...m.entries()].sort();
+  const svg = document.getElementById('daily');
+  if(!days.length){ svg.innerHTML=''; document.getElementById('dailyHint').textContent='ไม่มีข้อมูล'; return; }
+  const max = Math.max(...days.map(d=>d[1])), W=320, H=64, bw = W/days.length;
+  svg.innerHTML = days.map(([d,v],i)=>{
+    const h = Math.max(1.5, v/max*H);
+    return `<rect x="${(i*bw+bw*.12).toFixed(2)}" y="${(H-h).toFixed(2)}" width="${(bw*.76).toFixed(2)}" height="${h.toFixed(2)}" rx="1.5"><title>${d} — ${nf0.format(Math.round(v))} บาท</title></rect>`;
+  }).join('') + `<text class="axis" x="0" y="76">${days[0][0].slice(5)}</text>
+    <text class="axis" x="320" y="76" text-anchor="end">${days[days.length-1][0].slice(5)}</text>`;
+  const top = days.slice().sort((a,b)=>b[1]-a[1])[0];
+  document.getElementById('dailyHint').textContent = `สูงสุด ${top[0]} · ${nf0.format(Math.round(top[1]))} บาท · รวม ${days.length} วันทำการ`;
+}
+
+function topList(pts){
+  const el = document.getElementById('topList');
+  document.getElementById('topCount').textContent = pts.length ? `(${pts.length} พิกัด)` : '';
+  el.innerHTML = pts.slice(0,12).map((p,i)=>`<div class="rank" data-i="${i}">
+      <div class="no">${i+1}</div>
+      <div class="nm"><div>${esc(p.title)}</div><div>${esc(p.chain)} · ${p.n} บิล${p.ships.size>1?` · ${p.ships.size} จุดส่ง`:''}</div></div>
+      <div class="vl">${money(p.value)}</div></div>`).join('') || '<div class="hint">ไม่มีข้อมูล</div>';
+  el.onclick = e => {
+    const r = e.target.closest('.rank'); if(!r) return;
+    const p = pts[+r.dataset.i];
+    if(HAS_LEAFLET){ map.flyTo([p.lat,p.lon],14,{duration:.7}); const mk=markers[+r.dataset.i]; if(mk) setTimeout(()=>mk.openPopup(),720); }
+  };
+}
+
+function legend(pts){
+  const m = new Map();
+  pts.forEach(p=>p.chains.forEach((v,k)=>m.set(k,(m.get(k)||0)+v)));
+  const items = [...m.entries()].sort((a,b)=>b[1]-a[1]).slice(0,10);
+  document.getElementById('legend').innerHTML =
+    `<h3>กลุ่มค้าปลีก</h3>` +
+    items.map(([k,v])=>`<div class="it"><i style="background:${colorOf(k)}"></i>${esc(k)} <span style="margin-left:auto;color:#5f6368">${money(v)}</span></div>`).join('') +
+    (state.size?`<div class="scale">ขนาดวงกลม = มูลค่ารวมของพิกัดนั้น</div>`:'');
+}
+
+/* ---------------- table ---------------- */
+const TCOLS = [['date',r=>r.date||'—'],['doc',r=>r.doc||'—'],['cust',r=>r.cust],
+  ['ship',r=>r.ship+(r.lat==null?' <span class="nogeo">(ไม่มีพิกัด)</span>':'')],
+  ['route',r=>r.route||'—'],['chain',r=>r.chain],['value',r=>nf2.format(r.value)]];
+function table(rows){
+  const s = rows.slice().sort((a,b)=>{
+    const k = state.sortKey, d = state.sortDir;
+    const av=a[k], bv=b[k];
+    if(typeof av==='number') return (av-bv)*d;
+    return String(av||'').localeCompare(String(bv||''),'th')*d;
+  });
+  const show = s.slice(0,600);
+  document.querySelector('#tbl tbody').innerHTML = show.map(r=>`<tr>
+    <td>${esc(r.date||'—')}</td><td>${esc(r.doc||'—')}</td>
+    <td>${esc(r.cust)}${r.remark?`<br><span class="tag grey">${esc(r.remark)}</span>`:''}</td>
+    <td>${esc(r.ship)}${r.lat==null?' <span class="nogeo">ไม่มีพิกัด</span>':''}${r.addr?`<br><span style="color:#5f6368">${esc(r.addr)}</span>`:''}</td>
+    <td>${esc(r.route||'—')}${r.status==='เลื่อนส่ง'?' <span class="tag warn">เลื่อน</span>':r.status==='ยกเลิก'?' <span class="tag bad">CXL</span>':''}</td>
+    <td><span class="tag" style="background:${colorOf(r.chain)}">${esc(r.chain)}</span></td>
+    <td class="num">${nf2.format(r.value)}</td></tr>`).join('');
+  document.getElementById('tblMore').textContent = s.length>600 ? `แสดง 600 จาก ${nf0.format(s.length)} แถว — กรองเพิ่มหรือกด CSV เพื่อดูทั้งหมด` : `${nf0.format(s.length)} แถว`;
+}
+document.querySelector('#tbl thead').onclick = e => {
+  const th = e.target.closest('th'); if(!th) return;
+  const k = th.dataset.k;
+  state.sortDir = state.sortKey===k ? -state.sortDir : (k==='value'?-1:1);
+  state.sortKey = k; table(filtered);
+};
+
+/* ---------------- render ---------------- */
+function render(){
+  filtered = ROWS.filter(pass);
+  const pts = points(filtered);
+  const total = filtered.reduce((s,r)=>s+r.value,0);
+  const docs = new Set(filtered.map(r=>r.doc).filter(Boolean)).size || filtered.length;
+  document.getElementById('kValue').textContent = money(total);
+  document.getElementById('kDocs').textContent = nf0.format(docs);
+  document.getElementById('kShip').textContent = nf0.format(new Set(filtered.map(r=>r.ship)).size);
+  document.getElementById('kCust').textContent = nf0.format(new Set(filtered.map(r=>r.cust)).size);
+  document.getElementById('kAvg').textContent = filtered.length ? money(total/filtered.length) : '0';
+
+  drawMap(pts); legend(pts); topList(pts); daily(filtered); table(filtered);
+
+  const agg = key => {
+    const m = new Map();
+    filtered.forEach(r=>m.set(r[key]||'(ไม่ระบุ)',(m.get(r[key]||'(ไม่ระบุ)')||0)+r.value));
+    return [...m.entries()].sort((a,b)=>b[1]-a[1]).slice(0,10);
+  };
+  bars(document.getElementById('chainBars'), agg('chain'), colorOf);
+  bars(document.getElementById('routeBars'), agg('route'), ()=> '#1a73e8');
+
+  const nogeo = filtered.filter(r=>r.lat==null).length;
+  document.getElementById('coordNote').innerHTML =
+    `ข้อมูล ${nf0.format(filtered.length)} รายการ · ${pts.length} พิกัดบนแผนที่` +
+    (nogeo?` · <b>${nogeo}</b> รายการไม่มีพิกัด (ดูในตาราง)`:'') +
+    `<br>หมายเหตุ: พิกัดบางรายเป็นพิกัดของ DC/สำนักงาน จึงมีหลายจุดส่งซ้อนกันที่หมุดเดียว`;
+}
+
+/* ---------------- events ---------------- */
+const debounce = (f,ms=180)=>{let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>f(...a),ms)}};
+document.getElementById('q').oninput = debounce(e=>{state.q=e.target.value.trim();render()});
+document.getElementById('custSearch').oninput = debounce(e=>custList(e.target.value.trim()));
+document.getElementById('dFrom').onchange = e=>{state.from=e.target.value||MINDATE;render()};
+document.getElementById('dTo').onchange = e=>{state.to=e.target.value||MAXDATE;render()};
+document.getElementById('dateReset').onclick = ()=>{
+  state.from=MINDATE; state.to=MAXDATE;
+  document.getElementById('dFrom').value=MINDATE; document.getElementById('dTo').value=MAXDATE; render();
+};
+document.getElementById('minVal').oninput = e=>{
+  const pct = +e.target.value/100;
+  state.minVal = Math.round(Math.pow(pct,3)*MAXROWVAL/100)*100;
+  document.getElementById('minValLbl').textContent = nf0.format(state.minVal);
+  render();
+};
+document.getElementById('optSize').onchange = e=>{state.size=e.target.checked;render()};
+document.getElementById('optHeat').onchange = e=>{state.heat=e.target.checked;render()};
+document.getElementById('optLabel').onchange = e=>{state.labels=e.target.checked;render()};
+document.querySelectorAll('[data-clear]').forEach(a=>a.onclick=()=>{
+  state.sets[a.dataset.clear].clear();
+  document.querySelectorAll('#f'+a.dataset.clear.replace(/^./,c=>c.toUpperCase())+' .chip').forEach(c=>c.classList.remove('on'));
+  if(a.dataset.clear==='cust') custList(document.getElementById('custSearch').value.trim());
+  render();
+});
+document.getElementById('btnReset').onclick = ()=>{
+  state.q=''; state.minVal=0; state.from=MINDATE; state.to=MAXDATE;
+  Object.values(state.sets).forEach(s=>s.clear());
+  document.getElementById('q').value=''; document.getElementById('custSearch').value='';
+  document.getElementById('minVal').value=0; document.getElementById('minValLbl').textContent='0';
+  document.getElementById('dFrom').value=MINDATE; document.getElementById('dTo').value=MAXDATE;
+  document.querySelectorAll('.chip.on').forEach(c=>c.classList.remove('on'));
+  custList(); render(); fit(points(filtered));
+};
+document.getElementById('btnCsv').onclick = ()=>{
+  const head = ['DATE','DocNo','CustCode','CustName','RetailGroup','ShipTo','Address','Route','Status','Region','Value','Latitude','Longitude','Remark'];
+  const q = v => `"${String(v==null?'':v).replace(/"/g,'""')}"`;
+  const csv = '﻿' + [head.join(',')].concat(filtered.map(r=>[r.date,r.doc,r.code,r.cust,r.chain,r.ship,r.addr,r.route,r.status,r.region,r.value,r.lat,r.lon,r.remark].map(q).join(','))).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  a.download = 'retail_filtered.csv'; a.click(); URL.revokeObjectURL(a.href);
+};
+document.getElementById('btnFit').onclick = ()=>fit(points(filtered));
+document.getElementById('btnBkk').onclick = ()=>{ if(HAS_LEAFLET) map.flyTo(BKK,11,{duration:.8}); };
+document.getElementById('baseSel').onchange = e=>{
+  if(!HAS_LEAFLET) return;
+  map.removeLayer(currentBase); currentBase = baseLayers[e.target.value].addTo(map);
+};
+document.getElementById('tabMap').onclick = ()=>switchView('map');
+document.getElementById('tabTable').onclick = ()=>switchView('table');
+function switchView(v){
+  const t = v==='table';
+  document.getElementById('tableView').style.display = t?'block':'none';
+  document.getElementById('legend').style.display = t?'none':'block';
+  document.querySelector('.maptools').style.display = t?'none':'flex';
+  if(t) document.getElementById('emptyMap').style.display='none';
+  document.getElementById('tabTable').classList.toggle('on',t);
+  document.getElementById('tabMap').classList.toggle('on',!t);
+  if(!t && HAS_LEAFLET) setTimeout(()=>map.invalidateSize(),60);
+}
+window.addEventListener('resize', debounce(()=>{ if(!HAS_LEAFLET) drawFallback(points(filtered)); },200));
+
+/* ---------------- init ---------------- */
+document.getElementById('srcline').textContent =
+  `${DATA.source} · ${nf0.format(ROWS.length)} รายการ · ${MINDATE} ถึง ${MAXDATE}`;
+document.getElementById('dFrom').value = MINDATE; document.getElementById('dFrom').min = MINDATE; document.getElementById('dFrom').max = MAXDATE;
+document.getElementById('dTo').value = MAXDATE; document.getElementById('dTo').min = MINDATE; document.getElementById('dTo').max = MAXDATE;
+chipRow(document.getElementById('fChain'), DIM.chain, 'chain');
+chipRow(document.getElementById('fRoute'), DIM.route, 'route');
+chipRow(document.getElementById('fRegion'), DIM.region, 'region');
+chipRow(document.getElementById('fStatus'), DIM.status, 'status');
+custList();
+render();
+fit(points(ROWS));
+</script>
+<style>.ptlabel{background:rgba(255,255,255,.9);border:0;box-shadow:0 1px 3px rgba(0,0,0,.25);font-size:11px;font-weight:600;padding:1px 5px;border-radius:4px}
+.ptlabel::before{display:none}</style>
+</body>
+</html>
