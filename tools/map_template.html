@@ -224,8 +224,8 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
     </div>
 
     <div class="fgroup">
-      <div class="flabel">Route <a data-clear="route">Clear</a></div>
-      <div class="chips" id="fRoute"></div>
+      <div class="flabel">Transport mode <a data-clear="transport">Clear</a></div>
+      <div class="chips" id="fTransport"></div>
     </div>
 
     <div class="fgroup">
@@ -293,7 +293,7 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
       <table id="tbl">
         <thead><tr>
           <th data-k="date">Date</th><th data-k="doc">Doc no</th><th data-k="cust">Customer</th>
-          <th data-k="ship">Drop point (ShipTo)</th><th data-k="route">Route</th>
+          <th data-k="ship">Drop point (ShipTo)</th><th data-k="route">Route (actual)</th>
           <th data-k="chain">Group</th><th data-k="value" class="num">Value</th>
         </tr></thead>
         <tbody></tbody>
@@ -304,6 +304,10 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 
   <!-- ============ INSIGHTS ============ -->
   <aside id="insights">
+    <div class="card">
+      <h2>Value by transport mode</h2>
+      <div id="transportBars"></div>
+    </div>
     <div class="card">
       <h2>Value by retail group</h2>
       <div id="chainBars"></div>
@@ -318,7 +322,7 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
       <div id="topList"></div>
     </div>
     <div class="card">
-      <h2>Value by route</h2>
+      <h2>Value by actual route</h2>
       <div id="routeBars"></div>
     </div>
   </aside>
@@ -328,7 +332,8 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 <script>/*__HEAT_JS__*/</script>
 <script>
 const DATA = /*__DATA__*/null;
-const ROWS = DATA.rows, COLORS = DATA.colors;
+const ROWS = DATA.rows, COLORS = DATA.colors, TCOLORS = DATA.transportColors || {};
+const tColorOf = m => TCOLORS[m] || '#9aa0a6';
 const OTHER_COLOR = '#80868b';
 const nf0 = new Intl.NumberFormat('en-US',{maximumFractionDigits:0});
 const nf2 = new Intl.NumberFormat('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -342,25 +347,25 @@ const uniq = key => {
   ROWS.forEach(r => { const k = r[key] || '(none)'; const o = m.get(k) || {n:0,v:0}; o.n++; o.v += r.value; m.set(k,o); });
   return [...m.entries()].sort((a,b)=>b[1].v-a[1].v);
 };
-const DIM = {chain:uniq('chain'), route:uniq('route'), region:uniq('region'), status:uniq('status'), cust:uniq('cust')};
+const DIM = {chain:uniq('chain'), transport:uniq('transport'), region:uniq('region'), status:uniq('status'), cust:uniq('cust')};
 const DATES = ROWS.map(r=>r.date).filter(Boolean).sort();
 const MINDATE = DATES[0], MAXDATE = DATES[DATES.length-1];
 const MAXROWVAL = Math.max(...ROWS.map(r=>r.value));
 
 const state = {q:'', from:MINDATE, to:MAXDATE, minVal:0,
-  sets:{chain:new Set(), route:new Set(), region:new Set(), status:new Set(), cust:new Set()},
+  sets:{chain:new Set(), transport:new Set(), region:new Set(), status:new Set(), cust:new Set()},
   size:true, heat:false, labels:false, sortKey:'value', sortDir:-1};
 
 /* ---------------- filtering ---------------- */
 function pass(r){
   if(state.q){
     const q = state.q.toLowerCase();
-    const hay = (r.cust+' '+r.ship+' '+r.doc+' '+r.addr+' '+r.code+' '+r.remark+' '+r.route+' '+r.routeSrc).toLowerCase();
+    const hay = (r.cust+' '+r.ship+' '+r.doc+' '+r.addr+' '+r.code+' '+r.remark+' '+r.route+' '+r.routeSrc+' '+r.plan+' '+r.transport).toLowerCase();
     if(!hay.includes(q)) return false;
   }
   if(r.date){ if(r.date < state.from || r.date > state.to) return false; }
   if(r.value < state.minVal) return false;
-  for(const k of ['chain','route','region','status','cust']){
+  for(const k of ['chain','transport','region','status','cust']){
     const s = state.sets[k];
     if(s.size && !s.has(r[k] || '(none)')) return false;
   }
@@ -397,11 +402,12 @@ function points(rows){
     if(r.lat==null || r.lon==null) continue;
     const k = r.lat+','+r.lon;
     let p = m.get(k);
-    if(!p){ p = {lat:r.lat, lon:r.lon, value:0, n:0, ships:new Map(), chains:new Map(), routes:new Set(), custs:new Set()}; m.set(k,p); }
+    if(!p){ p = {lat:r.lat, lon:r.lon, value:0, n:0, ships:new Map(), chains:new Map(), routes:new Set(), modes:new Set(), custs:new Set()}; m.set(k,p); }
     p.value += r.value; p.n++;
     p.ships.set(r.ship,(p.ships.get(r.ship)||0)+r.value);
     p.chains.set(r.chain,(p.chains.get(r.chain)||0)+r.value);
     if(r.route) p.routes.add(r.route);
+    if(r.transport) p.modes.add(r.transport);
     p.custs.add(r.cust);
   }
   for(const p of m.values()){
@@ -414,7 +420,8 @@ function points(rows){
 function popupHtml(p){
   const ships = [...p.ships.entries()].sort((a,b)=>b[1]-a[1]);
   const rows = ships.slice(0,40).map(([s,v])=>`<div class="r"><span>${esc(s)}</span><b>${nf0.format(Math.round(v))}</b></div>`).join('');
-  const tags = [...p.routes].slice(0,8).map(r=>`<i>${/^\d+$/.test(r)?'R'+esc(r):esc(r)}</i>`).join('');
+  const tags = [...p.modes].map(m=>`<i style="background:${tColorOf(m)};color:#fff">${esc(m)}</i>`).join('')
+    + [...p.routes].slice(0,8).map(r=>`<i>${/^\d+$/.test(r)?'R'+esc(r):esc(r)}</i>`).join('');
   return `<div class="pop">
     <span class="badge" style="background:${colorOf(p.chain)}">${esc(p.chain)}</span>
     <h4>${esc(p.title)}</h4>
@@ -568,7 +575,7 @@ function table(rows){
     <td>${esc(r.date||'—')}</td><td>${esc(r.doc||'—')}</td>
     <td>${esc(r.cust)}${r.remark?`<br><span class="tag grey">${esc(r.remark)}</span>`:''}</td>
     <td>${esc(r.ship)}${r.lat==null?' <span class="nogeo">no coordinate</span>':''}${r.addr?`<br><span style="color:#5f6368">${esc(r.addr)}</span>`:''}</td>
-    <td>${esc(r.route||'—')}${r.status==='Postponed'?' <span class="tag warn">Postponed</span>':r.status==='Cancelled'?' <span class="tag bad">CXL</span>':''}</td>
+    <td>${esc(r.route||'—')} <span class="tag" style="background:${tColorOf(r.transport)}">${esc(r.transport)}</span>${r.plan&&r.plan!==r.route?`<br><span style="color:#5f6368">planned: ${esc(r.plan)}</span>`:''}${r.status==='Cancelled'?' <span class="tag bad">CXL</span>':''}</td>
     <td><span class="tag" style="background:${colorOf(r.chain)}">${esc(r.chain)}</span></td>
     <td class="num">${nf2.format(r.value)}</td></tr>`).join('');
   document.getElementById('tblMore').textContent = s.length>600 ? `Showing 600 of ${nf0.format(s.length)} rows — narrow the filters or export CSV for the full set` : `${nf0.format(s.length)} rows`;
@@ -599,6 +606,7 @@ function render(){
     filtered.forEach(r=>m.set(r[key]||'(none)',(m.get(r[key]||'(none)')||0)+r.value));
     return [...m.entries()].sort((a,b)=>b[1]-a[1]).slice(0,10);
   };
+  bars(document.getElementById('transportBars'), agg('transport'), tColorOf);
   bars(document.getElementById('chainBars'), agg('chain'), colorOf);
   bars(document.getElementById('routeBars'), agg('route'), ()=> '#1a73e8');
 
@@ -606,6 +614,8 @@ function render(){
   document.getElementById('coordNote').innerHTML =
     `${nf0.format(filtered.length)} records · ${pts.length} coordinates on the map` +
     (nogeo?` · <b>${nogeo}</b> without coordinates (table only)`:'') +
+    `<br>Route = <b>Route_actual</b> from the source file. Transport mode: Transporter (InterExp, IE/B&W) · CCS Own Truck (numbered routes, PTY) · The Rest.` +
+    (DATA.droppedPostponed?`<br>${nf0.format(DATA.droppedPostponed)} postponed rows (${money(DATA.droppedValue)} THB) are excluded from this report.`:'') +
     `<br>Note: some coordinates are DC / head-office locations, so several drop points stack on one marker.`;
 }
 
@@ -649,9 +659,9 @@ document.getElementById('btnReset').onclick = ()=>{
   custList(); render(); fit(points(filtered));
 };
 document.getElementById('btnCsv').onclick = ()=>{
-  const head = ['DATE','DocNo','CustCode','CustName','RetailGroup','ShipTo','Address','Route','RouteLabel','Status','Region','Value','Latitude','Longitude','Remark'];
+  const head = ['DATE','DocNo','CustCode','CustName','RetailGroup','ShipTo','Address','RouteActual','RoutePlanned','TransportMode','Status','Region','Value','Latitude','Longitude','Remark'];
   const q = v => `"${String(v==null?'':v).replace(/"/g,'""')}"`;
-  const csv = '﻿' + [head.join(',')].concat(filtered.map(r=>[r.date,r.doc,r.code,r.cust,r.chain,r.ship,r.addr,r.routeSrc,r.route,r.status,r.region,r.value,r.lat,r.lon,r.remark].map(q).join(','))).join('\n');
+  const csv = '﻿' + [head.join(',')].concat(filtered.map(r=>[r.date,r.doc,r.code,r.cust,r.chain,r.ship,r.addr,r.routeSrc,r.plan,r.transport,r.status,r.region,r.value,r.lat,r.lon,r.remark].map(q).join(','))).join('\n');
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
   a.download = 'retail_filtered.csv'; a.click(); URL.revokeObjectURL(a.href);
@@ -682,7 +692,7 @@ document.getElementById('srcline').textContent =
 document.getElementById('dFrom').value = MINDATE; document.getElementById('dFrom').min = MINDATE; document.getElementById('dFrom').max = MAXDATE;
 document.getElementById('dTo').value = MAXDATE; document.getElementById('dTo').min = MINDATE; document.getElementById('dTo').max = MAXDATE;
 chipRow(document.getElementById('fChain'), DIM.chain, 'chain');
-chipRow(document.getElementById('fRoute'), DIM.route, 'route');
+chipRow(document.getElementById('fTransport'), DIM.transport, 'transport');
 chipRow(document.getElementById('fRegion'), DIM.region, 'region');
 chipRow(document.getElementById('fStatus'), DIM.status, 'status');
 custList();

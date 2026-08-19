@@ -70,6 +70,30 @@ def region_of(lat, lon):
     return "Central"
 
 
+TRANSPORT_COLORS = {"Transporter": "#1a73e8", "CCS Own Truck": "#188038", "The Rest": "#9aa0a6"}
+
+
+def transport_of(route: str) -> str:
+    """Split the actual route (`Route_จริง`) into the three delivery modes.
+
+    Transporter    — outsourced: InterExp, IE,B&W, B & W
+    CCS Own Truck  — numbered routes plus the PTY / PTY1 Pattaya runs
+    The Rest       — anything else (blank or unrecognised route)
+    """
+    u = (route or "").upper().replace(" ", "")
+    if not u:
+        return "The Rest"
+    if "INTEREXP" in u or "B&W" in u:
+        return "Transporter"
+    if u.isdigit() or u.startswith("PTY"):
+        return "CCS Own Truck"
+    return "The Rest"
+
+
+def is_postponed(route: str) -> bool:
+    return "เลื่อน" in (route or "")
+
+
 def route_label(route: str) -> str:
     """English display label for the handful of Thai route codes in the source."""
     r = (route or "").strip()
@@ -85,13 +109,12 @@ def route_label(route: str) -> str:
     return r
 
 
-def status_of(route: str) -> str:
-    r = (route or "").strip()
-    if not r:
-        return "Unspecified"
-    if "CXL" in r.upper():
+def status_of(planned: str, actual: str) -> str:
+    """Postponed rows are dropped upstream, so a row that was replanned and then
+    driven counts as a normal delivery; only an explicit CXL stays cancelled."""
+    if "CXL" in (planned or "").upper() or "CXL" in (actual or "").upper():
         return "Cancelled"
-    if "เลื่อน" in r:
+    if is_postponed(actual):
         return "Postponed"
     return "Normal"
 
@@ -114,23 +137,32 @@ def norm_date(v):
 def clean(v):
     if v is None or (isinstance(v, float) and math.isnan(v)) or pd.isna(v):
         return ""
+    if isinstance(v, float) and v == int(v):
+        v = int(v)
     return re.sub(r"\s+", " ", str(v)).strip()
 
 
-def build(src: Path, out: Path) -> None:
+def build(src: Path, out: Path, keep_postponed: bool = False) -> None:
     df = pd.read_excel(src)
     # drop fully-empty rows and the workbook's grand-total row (no doc/customer)
     df = df.dropna(how="all")
     df = df[df["DocNo"].notna() | df["Cust Name"].notna()]
 
-    rows = []
+    rows, dropped, dropped_value = [], 0, 0.0
     for _, r in df.iterrows():
         lat, lon = r.get("Latitude"), r.get("Longitude")
         lat = None if pd.isna(lat) else round(float(lat), 6)
         lon = None if pd.isna(lon) else round(float(lon), 6)
         value = 0.0 if pd.isna(r.get("Value")) else round(float(r["Value"]), 2)
         cust = clean(r.get("Cust Name"))
-        route = clean(r.get("Route"))
+        planned = clean(r.get("Route"))
+        # `Route_จริง` (actual route driven) is the source of truth; fall back to the plan
+        actual = clean(r.get("Route_\u0e08\u0e23\u0e34\u0e07")) or planned
+        if is_postponed(actual) and not keep_postponed:
+            dropped += 1
+            dropped_value += 0.0 if pd.isna(r.get("Value")) else float(r["Value"])
+            continue
+        route = actual
         rows.append({
             "date": norm_date(r.get("DATE")),
             "order": clean(r.get("OrderNo")).replace(".0", ""),
@@ -141,9 +173,11 @@ def build(src: Path, out: Path) -> None:
             "value": value,
             "ship": clean(r.get("ShipTo Name")) or cust,
             "addr": clean(r.get("ShipTo.Address")),
-            "route": route_label(route),
-            "routeSrc": route,
-            "status": status_of(route),
+            "route": route_label(actual),
+            "routeSrc": actual,
+            "plan": route_label(planned),
+            "transport": transport_of(actual),
+            "status": status_of(planned, actual),
             "region": region_of(lat, lon),
             "remark": clean(r.get("Remark")),
             "lat": lat,
@@ -154,6 +188,9 @@ def build(src: Path, out: Path) -> None:
         "source": src.name,
         "rows": rows,
         "colors": CHAIN_COLORS,
+        "transportColors": TRANSPORT_COLORS,
+        "droppedPostponed": dropped,
+        "droppedValue": round(dropped_value, 2),
         "generated": pd.Timestamp.now().strftime("%Y-%m-%d %H:%M"),
     }
 
@@ -173,6 +210,10 @@ def build(src: Path, out: Path) -> None:
 
     geo = sum(1 for x in rows if x["lat"] is not None)
     print(f"rows={len(rows)} geocoded={geo} value={sum(x['value'] for x in rows):,.2f}")
+    print(f"postponed rows dropped={dropped} value={dropped_value:,.2f}")
+    for mode in ("Transporter", "CCS Own Truck", "The Rest"):
+        sel = [x for x in rows if x["transport"] == mode]
+        print(f"  {mode:<14} rows={len(sel):>4} value={sum(x['value'] for x in sel):,.2f}")
     print(f"wrote {out} ({out.stat().st_size/1024:.0f} KB)")
 
 
@@ -180,7 +221,9 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("src", type=Path)
     ap.add_argument("-o", "--out", type=Path, default=ROOT / "maps" / "retail-map-june2026.html")
+    ap.add_argument("--keep-postponed", action="store_true",
+                    help="keep rows whose actual route is still 'เลื่อน' (dropped by default)")
     a = ap.parse_args()
     if not a.src.exists():
         sys.exit(f"input not found: {a.src}")
-    build(a.src, a.out)
+    build(a.src, a.out, a.keep_postponed)
