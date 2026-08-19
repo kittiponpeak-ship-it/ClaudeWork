@@ -1,13 +1,13 @@
 <!doctype html>
-<html lang="th">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Retail Delivery Mapping — มิถุนายน 2026</title>
+<title>Retail Delivery Mapping — June 2026</title>
 <style>/*__LEAFLET_CSS__*/</style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
 :root{
   --blue:#1a73e8; --blue-dark:#1557b0; --ink:#202124; --muted:#5f6368;
@@ -17,7 +17,7 @@
 }
 *{box-sizing:border-box}
 html,body{height:100%}
-body{margin:0;font-family:'Sarabun',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+body{margin:0;font-family:'Roboto',system-ui,-apple-system,'Segoe UI',Arial,sans-serif;
   color:var(--ink);background:var(--bg);font-size:13.5px;-webkit-font-smoothing:antialiased}
 button,input,select{font:inherit;color:inherit}
 h1,h2,h3{margin:0}
@@ -30,13 +30,13 @@ h1,h2,h3{margin:0}
 .brand h1{font-size:16px;font-weight:700;letter-spacing:.1px;white-space:nowrap}
 .brand .sub{font-size:11.5px;color:var(--muted);white-space:nowrap}
 .kpis{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap}
-.kpi{background:#f8f9fa;border:1px solid var(--line);border-radius:8px;padding:5px 12px;min-width:96px}
+.kpi{background:#f8f9fa;border:1px solid var(--line);border-radius:8px;padding:5px 12px;min-width:98px}
 .kpi b{display:block;font-size:15px;line-height:1.25;font-variant-numeric:tabular-nums}
 .kpi span{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
 .kpi.accent b{color:var(--blue)}
 .viewtabs{display:flex;background:#f1f3f4;border-radius:999px;padding:3px;gap:2px}
 .viewtabs button{border:0;background:transparent;padding:6px 14px;border-radius:999px;cursor:pointer;
-  font-weight:600;font-size:12.5px;color:var(--muted)}
+  font-weight:500;font-size:12.5px;color:var(--muted)}
 .viewtabs button.on{background:var(--card);color:var(--blue);box-shadow:var(--shadow-sm)}
 
 /* ---------- layout ---------- */
@@ -51,7 +51,7 @@ main{flex:1 1 auto;position:relative;min-width:0}
 .fgroup{margin-bottom:16px}
 .flabel{display:flex;align-items:center;justify-content:space-between;font-size:11.5px;font-weight:700;
   color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px}
-.flabel a{color:var(--blue);text-decoration:none;cursor:pointer;font-weight:600;text-transform:none;letter-spacing:0;font-size:11.5px}
+.flabel a{color:var(--blue);text-decoration:none;cursor:pointer;font-weight:500;text-transform:none;letter-spacing:0;font-size:11.5px}
 .search{position:relative}
 .search svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);opacity:.55}
 .search input{width:100%;padding:10px 12px 10px 34px;border:1px solid var(--line);border-radius:999px;
@@ -65,7 +65,7 @@ main{flex:1 1 auto;position:relative;min-width:0}
 .chip:hover{background:#f1f3f4}
 .chip .dot{width:9px;height:9px;border-radius:50%;flex:0 0 auto}
 .chip .n{color:var(--muted);font-size:11px;font-variant-numeric:tabular-nums}
-.chip.on{background:#e8f0fe;border-color:#c6dafc;color:var(--blue-dark);font-weight:600}
+.chip.on{background:#e8f0fe;border-color:#c6dafc;color:var(--blue-dark);font-weight:500}
 .chip.on .n{color:var(--blue)}
 .listbox{border:1px solid var(--line);border-radius:8px;max-height:216px;overflow-y:auto;background:#fff}
 .listbox label{display:flex;gap:8px;align-items:center;padding:6px 10px;cursor:pointer;font-size:12.4px;border-bottom:1px solid #f1f3f4}
@@ -80,16 +80,21 @@ main{flex:1 1 auto;position:relative;min-width:0}
 .rangewrap b{font-size:12px;min-width:76px;text-align:right;font-variant-numeric:tabular-nums}
 .switch{display:flex;align-items:center;justify-content:space-between;padding:7px 0;font-size:12.5px;cursor:pointer}
 .switch input{accent-color:var(--blue);width:16px;height:16px}
+.seg{display:flex;background:#f1f3f4;border-radius:8px;padding:3px;gap:3px}
+.seg button{flex:1;border:0;background:transparent;border-radius:6px;padding:7px 4px;cursor:pointer;
+  font-size:12px;color:var(--muted);font-weight:500;display:flex;align-items:center;justify-content:center;gap:5px}
+.seg button.on{background:#fff;color:var(--blue);box-shadow:var(--shadow-sm)}
+.seg .ico{display:inline-block;border-radius:50%;background:currentColor;opacity:.85}
 .btnrow{display:flex;gap:8px;margin-top:4px}
 .btn{flex:1;border:1px solid var(--line);background:#fff;border-radius:8px;padding:9px;cursor:pointer;
-  font-weight:600;font-size:12.5px;display:flex;align-items:center;justify-content:center;gap:6px}
+  font-weight:500;font-size:12.5px;display:flex;align-items:center;justify-content:center;gap:6px}
 .btn:hover{background:#f1f3f4}
 .btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
 .btn.primary:hover{background:var(--blue-dark)}
 
 /* ---------- map overlays ---------- */
 .legend{position:absolute;left:12px;bottom:24px;z-index:800;background:rgba(255,255,255,.96);
-  border-radius:8px;box-shadow:var(--shadow);padding:9px 12px;max-width:230px}
+  border-radius:8px;box-shadow:var(--shadow);padding:9px 12px;max-width:236px}
 .legend h3{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:6px}
 .legend .it{display:flex;align-items:center;gap:7px;font-size:12px;padding:1.5px 0}
 .legend .it i{width:10px;height:10px;border-radius:50%;display:inline-block;flex:0 0 auto}
@@ -119,9 +124,9 @@ main{flex:1 1 auto;position:relative;min-width:0}
 .pop .rows .r span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pop .rows .r b{font-variant-numeric:tabular-nums;white-space:nowrap}
 .pop .gm{display:inline-flex;align-items:center;gap:6px;margin-top:9px;color:var(--blue);
-  text-decoration:none;font-weight:600;font-size:12.5px}
+  text-decoration:none;font-weight:500;font-size:12.5px}
 .pop .tags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px}
-.pop .tags i{font-style:normal;background:#e8f0fe;color:var(--blue-dark);border-radius:4px;padding:2px 6px;font-size:10.5px;font-weight:600}
+.pop .tags i{font-style:normal;background:#e8f0fe;color:var(--blue-dark);border-radius:4px;padding:2px 6px;font-size:10.5px;font-weight:500}
 
 /* ---------- insights ---------- */
 .card{border:1px solid var(--line);border-radius:var(--radius);padding:11px 12px;margin-bottom:12px}
@@ -138,7 +143,7 @@ main{flex:1 1 auto;position:relative;min-width:0}
 .rank .no{width:20px;height:20px;border-radius:50%;background:#f1f3f4;color:var(--muted);font-size:11px;
   font-weight:700;display:grid;place-items:center;flex:0 0 auto;margin-top:1px}
 .rank .nm{flex:1;min-width:0}
-.rank .nm div:first-child{font-weight:600;font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rank .nm div:first-child{font-weight:500;font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rank .nm div:last-child{color:var(--muted);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rank .vl{font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
 .spark{width:100%;height:78px;display:block}
@@ -148,15 +153,14 @@ main{flex:1 1 auto;position:relative;min-width:0}
 
 /* ---------- table ---------- */
 #tableView{position:absolute;inset:0;background:var(--card);overflow:auto;display:none;padding:0 0 40px;z-index:1000}
-table{background:var(--card)}
-table{border-collapse:collapse;width:100%;font-size:12.4px}
+table{border-collapse:collapse;width:100%;font-size:12.4px;background:var(--card)}
 thead th{position:sticky;top:0;background:#f8f9fa;border-bottom:1px solid var(--line);text-align:left;
   padding:9px 10px;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);white-space:nowrap;z-index:2;cursor:pointer}
 thead th:hover{color:var(--blue)}
 tbody td{padding:7px 10px;border-bottom:1px solid #f1f3f4;vertical-align:top}
 tbody tr:hover{background:#f8f9fa}
 td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
-.tag{display:inline-block;border-radius:4px;padding:1px 6px;font-size:10.5px;font-weight:600;color:#fff}
+.tag{display:inline-block;border-radius:4px;padding:1px 6px;font-size:10.5px;font-weight:500;color:#fff}
 .tag.warn{background:#f9ab00}.tag.bad{background:#d93025}.tag.grey{background:#9aa0a6}
 .more{padding:14px;text-align:center;color:var(--muted)}
 .nogeo{color:#d93025;font-size:11px}
@@ -187,15 +191,15 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
     </div>
   </div>
   <div class="viewtabs">
-    <button id="tabMap" class="on">🗺️ แผนที่</button>
-    <button id="tabTable">📋 ตาราง</button>
+    <button id="tabMap" class="on">🗺️ Map</button>
+    <button id="tabTable">📋 Table</button>
   </div>
   <div class="kpis">
-    <div class="kpi accent"><b id="kValue">—</b><span>ยอดรวม (บาท)</span></div>
-    <div class="kpi"><b id="kDocs">—</b><span>ใบส่งของ</span></div>
-    <div class="kpi"><b id="kShip">—</b><span>จุดส่ง</span></div>
-    <div class="kpi"><b id="kCust">—</b><span>ลูกค้า</span></div>
-    <div class="kpi"><b id="kAvg">—</b><span>เฉลี่ย/บิล</span></div>
+    <div class="kpi accent"><b id="kValue">—</b><span>Total value (THB)</span></div>
+    <div class="kpi"><b id="kDocs">—</b><span>Invoices</span></div>
+    <div class="kpi"><b id="kShip">—</b><span>Drop points</span></div>
+    <div class="kpi"><b id="kCust">—</b><span>Customers</span></div>
+    <div class="kpi"><b id="kAvg">—</b><span>Avg / invoice</span></div>
   </div>
 </header>
 
@@ -205,55 +209,62 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
     <div class="fgroup">
       <div class="search">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
-        <input id="q" type="search" placeholder="ค้นหา ลูกค้า / จุดส่ง / เลขที่บิล / ที่อยู่">
+        <input id="q" type="search" placeholder="Search customer / drop point / doc no / address">
       </div>
     </div>
 
     <div class="fgroup">
-      <div class="flabel">ช่วงวันที่ <a id="dateReset">ทั้งเดือน</a></div>
+      <div class="flabel">Date range <a id="dateReset">Full month</a></div>
       <div class="dates"><input id="dFrom" type="date"><span>–</span><input id="dTo" type="date"></div>
     </div>
 
     <div class="fgroup">
-      <div class="flabel">กลุ่มค้าปลีก (Retail) <a data-clear="chain">ล้าง</a></div>
+      <div class="flabel">Retail group <a data-clear="chain">Clear</a></div>
       <div class="chips" id="fChain"></div>
     </div>
 
     <div class="fgroup">
-      <div class="flabel">Route (สายวิ่ง) <a data-clear="route">ล้าง</a></div>
+      <div class="flabel">Route <a data-clear="route">Clear</a></div>
       <div class="chips" id="fRoute"></div>
     </div>
 
     <div class="fgroup">
-      <div class="flabel">ภูมิภาค <a data-clear="region">ล้าง</a></div>
+      <div class="flabel">Region <a data-clear="region">Clear</a></div>
       <div class="chips" id="fRegion"></div>
     </div>
 
     <div class="fgroup">
-      <div class="flabel">สถานะ <a data-clear="status">ล้าง</a></div>
+      <div class="flabel">Status <a data-clear="status">Clear</a></div>
       <div class="chips" id="fStatus"></div>
     </div>
 
     <div class="fgroup">
-      <div class="flabel">ลูกค้า (Customer Name) <a data-clear="cust">ล้าง</a></div>
-      <input class="mini" id="custSearch" placeholder="พิมพ์เพื่อกรองรายชื่อ…">
+      <div class="flabel">Customer name <a data-clear="cust">Clear</a></div>
+      <input class="mini" id="custSearch" placeholder="Type to filter the list…">
       <div class="listbox" id="fCust"></div>
     </div>
 
     <div class="fgroup">
-      <div class="flabel">มูลค่าขั้นต่ำต่อบิล</div>
+      <div class="flabel">Minimum value per invoice</div>
       <div class="rangewrap"><input id="minVal" type="range" min="0" max="100" value="0"><b id="minValLbl">0</b></div>
     </div>
 
     <div class="fgroup">
-      <div class="flabel">การแสดงผล</div>
-      <label class="switch"><span>ขนาดจุดตามมูลค่า</span><input type="checkbox" id="optSize" checked></label>
-      <label class="switch"><span>โหมด Heatmap</span><input type="checkbox" id="optHeat"></label>
-      <label class="switch"><span>แสดงชื่อจุดบนแผนที่</span><input type="checkbox" id="optLabel"></label>
+      <div class="flabel">Marker size</div>
+      <div class="seg" id="sizeMode">
+        <button data-v="value" class="on"><span class="ico" style="width:12px;height:12px"></span>By value</button>
+        <button data-v="uniform"><span class="ico" style="width:8px;height:8px"></span>Uniform</button>
+      </div>
+    </div>
+
+    <div class="fgroup">
+      <div class="flabel">Display</div>
+      <label class="switch"><span>Heatmap mode</span><input type="checkbox" id="optHeat"></label>
+      <label class="switch"><span>Show point labels</span><input type="checkbox" id="optLabel"></label>
     </div>
 
     <div class="btnrow">
-      <button class="btn" id="btnReset">↺ ล้างตัวกรอง</button>
+      <button class="btn" id="btnReset">↺ Reset filters</button>
       <button class="btn primary" id="btnCsv">⤓ CSV</button>
     </div>
     <div class="hint" id="coordNote"></div>
@@ -263,27 +274,27 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
   <main>
     <div id="map"></div>
     <div id="fallback">
-      <div class="fbnote"><b>โหมดออฟไลน์</b><br>โหลดแผนที่ (Leaflet/CDN) ไม่สำเร็จ — กำลังแสดงผังพิกัดแบบย่อแทน<br>ตัวกรองและตารางยังใช้งานได้ตามปกติ</div>
+      <div class="fbnote"><b>Offline mode</b><br>Map tiles could not be loaded — showing a simple coordinate plot instead.<br>Filters and the table still work as usual.</div>
       <svg id="fbSvg"></svg>
     </div>
-    <div class="emptymap" id="emptyMap"><span>ไม่พบข้อมูลตามตัวกรองที่เลือก</span></div>
+    <div class="emptymap" id="emptyMap"><span>No records match the current filters</span></div>
     <div class="maptools">
       <select class="basesel" id="baseSel">
-        <option value="voyager">แผนที่ (Google style)</option>
-        <option value="osm">ถนน (OSM)</option>
-        <option value="light">โทนสว่าง</option>
-        <option value="sat">ดาวเทียม</option>
+        <option value="voyager">Map (Google style)</option>
+        <option value="osm">Streets (OSM)</option>
+        <option value="light">Light</option>
+        <option value="sat">Satellite</option>
       </select>
-      <button class="iconbtn" id="btnFit" title="ซูมให้เห็นทุกจุด">⤢</button>
-      <button class="iconbtn" id="btnBkk" title="ไปกรุงเทพฯ">🏙️</button>
+      <button class="iconbtn" id="btnFit" title="Zoom to all points">⤢</button>
+      <button class="iconbtn" id="btnBkk" title="Go to Bangkok">🏙️</button>
     </div>
     <div class="legend" id="legend"></div>
     <div id="tableView">
       <table id="tbl">
         <thead><tr>
-          <th data-k="date">วันที่</th><th data-k="doc">เลขที่บิล</th><th data-k="cust">ลูกค้า</th>
-          <th data-k="ship">จุดส่ง (ShipTo)</th><th data-k="route">Route</th>
-          <th data-k="chain">กลุ่ม</th><th data-k="value" class="num">มูลค่า</th>
+          <th data-k="date">Date</th><th data-k="doc">Doc no</th><th data-k="cust">Customer</th>
+          <th data-k="ship">Drop point (ShipTo)</th><th data-k="route">Route</th>
+          <th data-k="chain">Group</th><th data-k="value" class="num">Value</th>
         </tr></thead>
         <tbody></tbody>
       </table>
@@ -294,20 +305,20 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
   <!-- ============ INSIGHTS ============ -->
   <aside id="insights">
     <div class="card">
-      <h2>ยอดตามกลุ่มค้าปลีก</h2>
+      <h2>Value by retail group</h2>
       <div id="chainBars"></div>
     </div>
     <div class="card">
-      <h2>ยอดรายวัน</h2>
+      <h2>Daily value</h2>
       <svg class="spark" id="daily" viewBox="0 0 320 78" preserveAspectRatio="none"></svg>
       <div class="hint" id="dailyHint"></div>
     </div>
     <div class="card">
-      <h2>Top จุดส่ง <span id="topCount"></span></h2>
+      <h2>Top drop points <span id="topCount"></span></h2>
       <div id="topList"></div>
     </div>
     <div class="card">
-      <h2>ยอดตาม Route</h2>
+      <h2>Value by route</h2>
       <div id="routeBars"></div>
     </div>
   </aside>
@@ -319,8 +330,8 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 const DATA = /*__DATA__*/null;
 const ROWS = DATA.rows, COLORS = DATA.colors;
 const OTHER_COLOR = '#80868b';
-const nf0 = new Intl.NumberFormat('th-TH',{maximumFractionDigits:0});
-const nf2 = new Intl.NumberFormat('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});
+const nf0 = new Intl.NumberFormat('en-US',{maximumFractionDigits:0});
+const nf2 = new Intl.NumberFormat('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 const colorOf = c => COLORS[c] || OTHER_COLOR;
 const money = v => v>=1e6 ? (v/1e6).toFixed(2)+'M' : v>=1e3 ? nf0.format(Math.round(v)) : nf0.format(v);
 const esc = s => String(s==null?'':s).replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
@@ -328,7 +339,7 @@ const esc = s => String(s==null?'':s).replace(/[&<>"]/g, m => ({'&':'&amp;','<':
 /* ---------------- dimension values ---------------- */
 const uniq = key => {
   const m = new Map();
-  ROWS.forEach(r => { const k = r[key] || '(ไม่ระบุ)'; const o = m.get(k) || {n:0,v:0}; o.n++; o.v += r.value; m.set(k,o); });
+  ROWS.forEach(r => { const k = r[key] || '(none)'; const o = m.get(k) || {n:0,v:0}; o.n++; o.v += r.value; m.set(k,o); });
   return [...m.entries()].sort((a,b)=>b[1].v-a[1].v);
 };
 const DIM = {chain:uniq('chain'), route:uniq('route'), region:uniq('region'), status:uniq('status'), cust:uniq('cust')};
@@ -344,14 +355,14 @@ const state = {q:'', from:MINDATE, to:MAXDATE, minVal:0,
 function pass(r){
   if(state.q){
     const q = state.q.toLowerCase();
-    const hay = (r.cust+' '+r.ship+' '+r.doc+' '+r.addr+' '+r.code+' '+r.remark+' '+r.route).toLowerCase();
+    const hay = (r.cust+' '+r.ship+' '+r.doc+' '+r.addr+' '+r.code+' '+r.remark+' '+r.route+' '+r.routeSrc).toLowerCase();
     if(!hay.includes(q)) return false;
   }
   if(r.date){ if(r.date < state.from || r.date > state.to) return false; }
   if(r.value < state.minVal) return false;
   for(const k of ['chain','route','region','status','cust']){
     const s = state.sets[k];
-    if(s.size && !s.has(r[k] || '(ไม่ระบุ)')) return false;
+    if(s.size && !s.has(r[k] || '(none)')) return false;
   }
   return true;
 }
@@ -407,14 +418,14 @@ function popupHtml(p){
   return `<div class="pop">
     <span class="badge" style="background:${colorOf(p.chain)}">${esc(p.chain)}</span>
     <h4>${esc(p.title)}</h4>
-    <div class="addr">${ships.length>1?ships.length+' จุดส่งที่พิกัดนี้ · ':''}${p.lat.toFixed(5)}, ${p.lon.toFixed(5)}</div>
+    <div class="addr">${ships.length>1?ships.length+' drop points at this coordinate · ':''}${p.lat.toFixed(5)}, ${p.lon.toFixed(5)}</div>
     ${tags?`<div class="tags">${tags}</div>`:''}
     <div class="grid">
-      <div><b>${nf0.format(Math.round(p.value))}</b><span>มูลค่ารวม (บาท)</span></div>
-      <div><b>${nf0.format(p.n)}</b><span>ใบส่งของ</span></div>
+      <div><b>${nf0.format(Math.round(p.value))}</b><span>Total value (THB)</span></div>
+      <div><b>${nf0.format(p.n)}</b><span>Invoices</span></div>
     </div>
-    <div class="rows">${rows}${ships.length>40?`<div class="r"><span>…อีก ${ships.length-40} จุด</span></div>`:''}</div>
-    <a class="gm" href="https://www.google.com/maps?q=${p.lat},${p.lon}" target="_blank" rel="noopener">↗ เปิดใน Google Maps</a>
+    <div class="rows">${rows}${ships.length>40?`<div class="r"><span>…and ${ships.length-40} more</span></div>`:''}</div>
+    <a class="gm" href="https://www.google.com/maps?q=${p.lat},${p.lon}" target="_blank" rel="noopener">↗ Open in Google Maps</a>
   </div>`;
 }
 
@@ -429,11 +440,11 @@ function drawMap(pts){
       {radius:34,blur:24,maxZoom:12,gradient:{0.2:'#4285f4',0.45:'#34a853',0.65:'#fbbc04',0.85:'#ea4335'}}).addTo(map);
   }
   pts.forEach((p,i)=>{
-    const r = state.size ? 6 + 24*Math.sqrt(p.value/maxV) : 8;
+    const r = state.size ? 6 + 24*Math.sqrt(p.value/maxV) : 7;
     const mk = L.circleMarker([p.lat,p.lon],{radius:r,color:'#fff',weight:1.6,opacity:.95,
       fillColor:colorOf(p.chain),fillOpacity:state.heat?.55:.82}).addTo(layer);
     mk.bindPopup(popupHtml(p),{maxWidth:340});
-    mk.bindTooltip(`<b>${esc(p.title)}</b><br>${money(p.value)} บาท · ${p.n} บิล`,{direction:'top',offset:[0,-4]});
+    mk.bindTooltip(`<b>${esc(p.title)}</b><br>${money(p.value)} THB · ${p.n} invoices`,{direction:'top',offset:[0,-4]});
     if(state.labels && i<40){
       L.marker([p.lat,p.lon],{icon:L.divIcon({className:'',html:'',iconSize:[0,0]}),interactive:false})
         .bindTooltip(p.title.length>26?p.title.slice(0,26)+'…':p.title,{permanent:true,direction:'right',offset:[r,0],className:'ptlabel'})
@@ -449,7 +460,7 @@ function fit(pts){
   if(HAS_LEAFLET) map.fitBounds(L.latLngBounds(pts.map(p=>[p.lat,p.lon])).pad(.12),{maxZoom:14});
 }
 
-/* SVG fallback scatter when Leaflet/CDN is unavailable */
+/* SVG fallback scatter when Leaflet is unavailable */
 function drawFallback(pts){
   const svg = document.getElementById('fbSvg');
   const w = svg.clientWidth || 800, h = svg.clientHeight || 600;
@@ -463,7 +474,7 @@ function drawFallback(pts){
   svg.innerHTML = pts.map(p=>{
     const x=cx+(p.lon-lo0)*s, y=cy+(la1-p.lat)*s;
     const r=state.size ? 4+18*Math.sqrt(p.value/maxV) : 6;
-    return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(1)}" fill="${colorOf(p.chain)}" fill-opacity=".8" stroke="#fff" stroke-width="1.4"><title>${esc(p.title)} — ${nf0.format(Math.round(p.value))} บาท / ${p.n} บิล</title></circle>`;
+    return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(1)}" fill="${colorOf(p.chain)}" fill-opacity=".8" stroke="#fff" stroke-width="1.4"><title>${esc(p.title)} — ${nf0.format(Math.round(p.value))} THB / ${p.n} invoices</title></circle>`;
   }).join('');
 }
 
@@ -487,7 +498,7 @@ function custList(term=''){
   const items = DIM.cust.filter(([n])=>!t || n.toLowerCase().includes(t)).slice(0,300);
   box.innerHTML = items.map(([n,o])=>`<label><input type="checkbox" value="${esc(n)}" ${state.sets.cust.has(n)?'checked':''}>
     <span class="nm" title="${esc(n)}">${esc(n)}</span><span class="vl">${money(o.v)}</span></label>`).join('')
-    || '<div class="more">ไม่พบรายชื่อ</div>';
+    || '<div class="more">No matching customer</div>';
 }
 document.getElementById('fCust').onchange = e => {
   if(e.target.type!=='checkbox') return;
@@ -501,7 +512,7 @@ function bars(el, entries, colorFn){
   el.innerHTML = entries.map(([k,v])=>`<div class="bar">
     <div class="top"><span>${esc(k)}</span><b>${money(v)}</b></div>
     <div class="track"><div class="fill" style="width:${(v/max*100).toFixed(1)}%;background:${colorFn(k)}"></div></div>
-  </div>`).join('') || '<div class="hint">ไม่มีข้อมูล</div>';
+  </div>`).join('') || '<div class="hint">No data</div>';
 }
 
 function daily(rows){
@@ -509,24 +520,24 @@ function daily(rows){
   rows.forEach(r=>{ if(r.date) m.set(r.date,(m.get(r.date)||0)+r.value); });
   const days = [...m.entries()].sort();
   const svg = document.getElementById('daily');
-  if(!days.length){ svg.innerHTML=''; document.getElementById('dailyHint').textContent='ไม่มีข้อมูล'; return; }
+  if(!days.length){ svg.innerHTML=''; document.getElementById('dailyHint').textContent='No data'; return; }
   const max = Math.max(...days.map(d=>d[1])), W=320, H=64, bw = W/days.length;
   svg.innerHTML = days.map(([d,v],i)=>{
     const h = Math.max(1.5, v/max*H);
-    return `<rect x="${(i*bw+bw*.12).toFixed(2)}" y="${(H-h).toFixed(2)}" width="${(bw*.76).toFixed(2)}" height="${h.toFixed(2)}" rx="1.5"><title>${d} — ${nf0.format(Math.round(v))} บาท</title></rect>`;
+    return `<rect x="${(i*bw+bw*.12).toFixed(2)}" y="${(H-h).toFixed(2)}" width="${(bw*.76).toFixed(2)}" height="${h.toFixed(2)}" rx="1.5"><title>${d} — ${nf0.format(Math.round(v))} THB</title></rect>`;
   }).join('') + `<text class="axis" x="0" y="76">${days[0][0].slice(5)}</text>
     <text class="axis" x="320" y="76" text-anchor="end">${days[days.length-1][0].slice(5)}</text>`;
   const top = days.slice().sort((a,b)=>b[1]-a[1])[0];
-  document.getElementById('dailyHint').textContent = `สูงสุด ${top[0]} · ${nf0.format(Math.round(top[1]))} บาท · รวม ${days.length} วันทำการ`;
+  document.getElementById('dailyHint').textContent = `Peak ${top[0]} · ${nf0.format(Math.round(top[1]))} THB · ${days.length} delivery days`;
 }
 
 function topList(pts){
   const el = document.getElementById('topList');
-  document.getElementById('topCount').textContent = pts.length ? `(${pts.length} พิกัด)` : '';
+  document.getElementById('topCount').textContent = pts.length ? `(${pts.length} coords)` : '';
   el.innerHTML = pts.slice(0,12).map((p,i)=>`<div class="rank" data-i="${i}">
       <div class="no">${i+1}</div>
-      <div class="nm"><div>${esc(p.title)}</div><div>${esc(p.chain)} · ${p.n} บิล${p.ships.size>1?` · ${p.ships.size} จุดส่ง`:''}</div></div>
-      <div class="vl">${money(p.value)}</div></div>`).join('') || '<div class="hint">ไม่มีข้อมูล</div>';
+      <div class="nm"><div>${esc(p.title)}</div><div>${esc(p.chain)} · ${p.n} invoices${p.ships.size>1?` · ${p.ships.size} drop points`:''}</div></div>
+      <div class="vl">${money(p.value)}</div></div>`).join('') || '<div class="hint">No data</div>';
   el.onclick = e => {
     const r = e.target.closest('.rank'); if(!r) return;
     const p = pts[+r.dataset.i];
@@ -539,31 +550,28 @@ function legend(pts){
   pts.forEach(p=>p.chains.forEach((v,k)=>m.set(k,(m.get(k)||0)+v)));
   const items = [...m.entries()].sort((a,b)=>b[1]-a[1]).slice(0,10);
   document.getElementById('legend').innerHTML =
-    `<h3>กลุ่มค้าปลีก</h3>` +
+    `<h3>Retail group</h3>` +
     items.map(([k,v])=>`<div class="it"><i style="background:${colorOf(k)}"></i>${esc(k)} <span style="margin-left:auto;color:#5f6368">${money(v)}</span></div>`).join('') +
-    (state.size?`<div class="scale">ขนาดวงกลม = มูลค่ารวมของพิกัดนั้น</div>`:'');
+    (state.size?`<div class="scale">Circle size = total value at that coordinate</div>`:'');
 }
 
 /* ---------------- table ---------------- */
-const TCOLS = [['date',r=>r.date||'—'],['doc',r=>r.doc||'—'],['cust',r=>r.cust],
-  ['ship',r=>r.ship+(r.lat==null?' <span class="nogeo">(ไม่มีพิกัด)</span>':'')],
-  ['route',r=>r.route||'—'],['chain',r=>r.chain],['value',r=>nf2.format(r.value)]];
 function table(rows){
   const s = rows.slice().sort((a,b)=>{
     const k = state.sortKey, d = state.sortDir;
     const av=a[k], bv=b[k];
     if(typeof av==='number') return (av-bv)*d;
-    return String(av||'').localeCompare(String(bv||''),'th')*d;
+    return String(av||'').localeCompare(String(bv||''))*d;
   });
   const show = s.slice(0,600);
   document.querySelector('#tbl tbody').innerHTML = show.map(r=>`<tr>
     <td>${esc(r.date||'—')}</td><td>${esc(r.doc||'—')}</td>
     <td>${esc(r.cust)}${r.remark?`<br><span class="tag grey">${esc(r.remark)}</span>`:''}</td>
-    <td>${esc(r.ship)}${r.lat==null?' <span class="nogeo">ไม่มีพิกัด</span>':''}${r.addr?`<br><span style="color:#5f6368">${esc(r.addr)}</span>`:''}</td>
-    <td>${esc(r.route||'—')}${r.status==='เลื่อนส่ง'?' <span class="tag warn">เลื่อน</span>':r.status==='ยกเลิก'?' <span class="tag bad">CXL</span>':''}</td>
+    <td>${esc(r.ship)}${r.lat==null?' <span class="nogeo">no coordinate</span>':''}${r.addr?`<br><span style="color:#5f6368">${esc(r.addr)}</span>`:''}</td>
+    <td>${esc(r.route||'—')}${r.status==='Postponed'?' <span class="tag warn">Postponed</span>':r.status==='Cancelled'?' <span class="tag bad">CXL</span>':''}</td>
     <td><span class="tag" style="background:${colorOf(r.chain)}">${esc(r.chain)}</span></td>
     <td class="num">${nf2.format(r.value)}</td></tr>`).join('');
-  document.getElementById('tblMore').textContent = s.length>600 ? `แสดง 600 จาก ${nf0.format(s.length)} แถว — กรองเพิ่มหรือกด CSV เพื่อดูทั้งหมด` : `${nf0.format(s.length)} แถว`;
+  document.getElementById('tblMore').textContent = s.length>600 ? `Showing 600 of ${nf0.format(s.length)} rows — narrow the filters or export CSV for the full set` : `${nf0.format(s.length)} rows`;
 }
 document.querySelector('#tbl thead').onclick = e => {
   const th = e.target.closest('th'); if(!th) return;
@@ -588,7 +596,7 @@ function render(){
 
   const agg = key => {
     const m = new Map();
-    filtered.forEach(r=>m.set(r[key]||'(ไม่ระบุ)',(m.get(r[key]||'(ไม่ระบุ)')||0)+r.value));
+    filtered.forEach(r=>m.set(r[key]||'(none)',(m.get(r[key]||'(none)')||0)+r.value));
     return [...m.entries()].sort((a,b)=>b[1]-a[1]).slice(0,10);
   };
   bars(document.getElementById('chainBars'), agg('chain'), colorOf);
@@ -596,9 +604,9 @@ function render(){
 
   const nogeo = filtered.filter(r=>r.lat==null).length;
   document.getElementById('coordNote').innerHTML =
-    `ข้อมูล ${nf0.format(filtered.length)} รายการ · ${pts.length} พิกัดบนแผนที่` +
-    (nogeo?` · <b>${nogeo}</b> รายการไม่มีพิกัด (ดูในตาราง)`:'') +
-    `<br>หมายเหตุ: พิกัดบางรายเป็นพิกัดของ DC/สำนักงาน จึงมีหลายจุดส่งซ้อนกันที่หมุดเดียว`;
+    `${nf0.format(filtered.length)} records · ${pts.length} coordinates on the map` +
+    (nogeo?` · <b>${nogeo}</b> without coordinates (table only)`:'') +
+    `<br>Note: some coordinates are DC / head-office locations, so several drop points stack on one marker.`;
 }
 
 /* ---------------- events ---------------- */
@@ -617,7 +625,12 @@ document.getElementById('minVal').oninput = e=>{
   document.getElementById('minValLbl').textContent = nf0.format(state.minVal);
   render();
 };
-document.getElementById('optSize').onchange = e=>{state.size=e.target.checked;render()};
+document.getElementById('sizeMode').onclick = e=>{
+  const b = e.target.closest('button'); if(!b) return;
+  state.size = b.dataset.v === 'value';
+  document.querySelectorAll('#sizeMode button').forEach(x=>x.classList.toggle('on', x===b));
+  render();
+};
 document.getElementById('optHeat').onchange = e=>{state.heat=e.target.checked;render()};
 document.getElementById('optLabel').onchange = e=>{state.labels=e.target.checked;render()};
 document.querySelectorAll('[data-clear]').forEach(a=>a.onclick=()=>{
@@ -636,9 +649,9 @@ document.getElementById('btnReset').onclick = ()=>{
   custList(); render(); fit(points(filtered));
 };
 document.getElementById('btnCsv').onclick = ()=>{
-  const head = ['DATE','DocNo','CustCode','CustName','RetailGroup','ShipTo','Address','Route','Status','Region','Value','Latitude','Longitude','Remark'];
+  const head = ['DATE','DocNo','CustCode','CustName','RetailGroup','ShipTo','Address','Route','RouteLabel','Status','Region','Value','Latitude','Longitude','Remark'];
   const q = v => `"${String(v==null?'':v).replace(/"/g,'""')}"`;
-  const csv = '﻿' + [head.join(',')].concat(filtered.map(r=>[r.date,r.doc,r.code,r.cust,r.chain,r.ship,r.addr,r.route,r.status,r.region,r.value,r.lat,r.lon,r.remark].map(q).join(','))).join('\n');
+  const csv = '﻿' + [head.join(',')].concat(filtered.map(r=>[r.date,r.doc,r.code,r.cust,r.chain,r.ship,r.addr,r.routeSrc,r.route,r.status,r.region,r.value,r.lat,r.lon,r.remark].map(q).join(','))).join('\n');
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
   a.download = 'retail_filtered.csv'; a.click(); URL.revokeObjectURL(a.href);
@@ -665,7 +678,7 @@ window.addEventListener('resize', debounce(()=>{ if(!HAS_LEAFLET) drawFallback(p
 
 /* ---------------- init ---------------- */
 document.getElementById('srcline').textContent =
-  `${DATA.source} · ${nf0.format(ROWS.length)} รายการ · ${MINDATE} ถึง ${MAXDATE}`;
+  `${DATA.source} · ${nf0.format(ROWS.length)} records · ${MINDATE} to ${MAXDATE}`;
 document.getElementById('dFrom').value = MINDATE; document.getElementById('dFrom').min = MINDATE; document.getElementById('dFrom').max = MAXDATE;
 document.getElementById('dTo').value = MAXDATE; document.getElementById('dTo').min = MINDATE; document.getElementById('dTo').max = MAXDATE;
 chipRow(document.getElementById('fChain'), DIM.chain, 'chain');
@@ -676,7 +689,7 @@ custList();
 render();
 fit(points(ROWS));
 </script>
-<style>.ptlabel{background:rgba(255,255,255,.9);border:0;box-shadow:0 1px 3px rgba(0,0,0,.25);font-size:11px;font-weight:600;padding:1px 5px;border-radius:4px}
+<style>.ptlabel{background:rgba(255,255,255,.9);border:0;box-shadow:0 1px 3px rgba(0,0,0,.25);font-size:11px;font-weight:500;padding:1px 5px;border-radius:4px}
 .ptlabel::before{display:none}</style>
 </body>
 </html>

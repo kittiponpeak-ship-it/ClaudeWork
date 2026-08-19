@@ -1,57 +1,63 @@
-# Retail Delivery Mapping — มิถุนายน 2026
+# Retail Delivery Mapping — June 2026
 
-แผนที่ + แดชบอร์ดกรองข้อมูลการส่งของลูกค้า Retail จากไฟล์ใบส่งของ
-`JUNE_26_RetailFROMINVOICE_withCoordinates.xlsx`
+Interactive map + filter dashboard built from the invoice export
+`JUNE_26_RetailFROMINVOICE_withCoordinates.xlsx`.
 
-## เปิดใช้งาน
+## Opening it
 
-เปิดไฟล์ `retail-map-june2026.html` ด้วยเบราว์เซอร์ได้เลย (ดับเบิลคลิก) —
-ข้อมูลทั้งหมดและไลบรารี Leaflet ฝังอยู่ในไฟล์เดียว ไม่ต้องติดตั้งอะไรเพิ่ม
-ต่ออินเทอร์เน็ตไว้เพื่อให้โหลดภาพแผนที่ (tiles) ได้ ถ้าออฟไลน์จะสลับไปแสดงผังพิกัดแบบย่อแทน
+Just double-click `retail-map-june2026.html` — the data and the Leaflet library are
+embedded in the single file, nothing to install. Keep an internet connection so the map
+tiles load; offline it falls back to a plain coordinate plot and every filter still works.
 
-## สิ่งที่มีในหน้า
+## What's on the page
 
-| ส่วน | รายละเอียด |
+| Area | Details |
 |---|---|
-| KPI ด้านบน | ยอดรวม, จำนวนใบส่งของ, จุดส่ง, ลูกค้า, ค่าเฉลี่ยต่อบิล — ขยับตามตัวกรองทันที |
-| แผนที่ | หมุดวงกลม สีตามกลุ่มค้าปลีก ขนาดตามมูลค่ารวมของพิกัดนั้น, คลิกดูรายละเอียด + ลิงก์เปิด Google Maps |
-| ฐานแผนที่ | Google style (CARTO Voyager), ถนน (OSM), โทนสว่าง, ดาวเทียม (Esri) |
-| Heatmap | สลับเป็นโหมดความหนาแน่นของยอดขาย |
-| ตาราง | ทุกรายการ เรียงได้ทุกคอลัมน์ พร้อมป้าย "เลื่อน/CXL" และ "ไม่มีพิกัด" |
-| แผงขวา | ยอดตามกลุ่มค้าปลีก, ยอดรายวัน, Top จุดส่ง (คลิกเพื่อบินไปที่หมุด), ยอดตาม Route |
-| CSV | ดาวน์โหลดเฉพาะแถวที่กรองอยู่ (UTF-8 BOM เปิดใน Excel ได้ตรง ๆ) |
+| KPI bar | Total value, invoices, drop points, customers, average per invoice — all react to the filters |
+| Map | One circle per coordinate, coloured by retail group; click for a detail card with an "Open in Google Maps" link |
+| Marker size | **By value** (circle area scales with value) or **Uniform** (every point the same size) |
+| Basemaps | Map (Google style / CARTO Voyager), Streets (OSM), Light, Satellite (Esri) |
+| Heatmap | Density view of where the value lands |
+| Table | Every row, sortable on any column, with `Postponed` / `CXL` / `no coordinate` badges |
+| Right panel | Value by retail group, daily value, top drop points (click to fly to the marker), value by route |
+| CSV | Exports exactly the rows currently filtered (UTF-8 BOM, opens straight in Excel) |
 
-## ตัวกรอง
+## Filters
 
-ค้นหาข้อความ (ลูกค้า/จุดส่ง/เลขที่บิล/ที่อยู่/หมายเหตุ) · ช่วงวันที่ ·
-กลุ่มค้าปลีก · Route · ภูมิภาค · สถานะ (ปกติ / เลื่อนส่ง / ยกเลิก) ·
-ชื่อลูกค้า (เลือกได้หลายราย) · มูลค่าขั้นต่ำต่อบิล
-ทุกตัวกรองทำงานร่วมกันแบบ AND และเลือกได้หลายค่าในแต่ละกลุ่ม
+Full-text search (customer / drop point / doc no / address / remark / route) · date range ·
+retail group · route · region · status (Normal / Postponed / Cancelled) · customer name
+multi-select · minimum value per invoice. Filters combine with AND, and each one accepts
+multiple selections.
 
-## คอลัมน์ที่คำนวณเพิ่มจากไฟล์ต้นทาง
+## Columns derived from the source file
 
-- **กลุ่มค้าปลีก (RetailGroup)** — จับจากชื่อใน `Cust Name` (Big C, Makro, Lotus's,
-  Tops/CFR, The Mall Group, Foodland, Villa Market, Tantrapan, Asia Books, Lemon Farm,
-  City Mall (EM), UFM Fuji Super, Home Fresh Mart, อื่น ๆ)
-- **ภูมิภาค** — ประมาณจากพิกัด lat/lon (ใช้เพื่อกรองแบบคร่าว ๆ ไม่ใช่ขอบเขตจังหวัดจริง)
-- **สถานะ** — อ่านจากคอลัมน์ `Route`: มีคำว่า "เลื่อน" → เลื่อนส่ง, `CXL` → ยกเลิก
+- **RetailGroup** — matched from `Cust Name` (Big C, Makro, Lotus's, Tops/CFR, The Mall
+  Group, Foodland, Villa Market, Tantrapan, Asia Books, Lemon Farm, City Mall (EM),
+  UFM Fuji Super, Home Fresh Mart, Others)
+- **Region** — approximated from lat/lon (coarse filtering aid, not real province borders)
+- **Status** — read from `Route`: contains "เลื่อน" → Postponed, `CXL` → Cancelled
+- **RouteLabel** — English label for the Thai route codes; the CSV keeps the original
+  value in `Route` and the label in `RouteLabel`
 
-## ข้อควรรู้เรื่องข้อมูล
+## Data notes
 
-- 1,100 รายการ ยอดรวม 6,408,977.94 บาท (ตรงกับแถวผลรวมในไฟล์ Excel)
-- 1,097 รายการมีพิกัด, **3 รายการไม่มีพิกัด** — ไม่ขึ้นบนแผนที่แต่ยังอยู่ในตาราง/CSV
-- พิกัดในไฟล์ต้นทางหลายรายเป็นพิกัดของ **DC/สำนักงานใหญ่** ไม่ใช่หน้าร้าน เช่น
-  Big C CreditDC 333 บิลอยู่ที่หมุดเดียว และ CP Axtra (Makro/Lotus's) รวมอยู่ที่พิกัดสำนักงาน
-  ทั้งหมด 1,097 รายการจึงตกลงบน 132 พิกัด — popup จะไล่รายชื่อจุดส่งทั้งหมดที่หมุดนั้นให้
-- คอลัมน์ `เวลาเข้า` / `เวลาออก` ว่างทั้งไฟล์ จึงไม่ได้นำมาแสดง
-- รายการที่ `Value` ว่าง ถูกนับเป็น 0
+- 1,100 records totalling 6,408,977.94 THB — matches the grand-total row in the workbook
+- 1,097 records have coordinates; **3 do not** — they stay in the table and CSV, not on the map
+- Many coordinates in the source are **DC / head-office** positions rather than store
+  fronts: 333 Big C CreditDC invoices sit on one marker, and CP Axtra (Makro / Lotus's)
+  collapses onto the office coordinate. All 1,097 records land on just 132 coordinates,
+  so each popup lists every drop point stacked at that marker
+- `เวลาเข้า` / `เวลาออก` are empty for the whole file, so they are not shown
+- Rows with an empty `Value` count as 0
+- Free-text remarks are kept verbatim in the original language — they are operator notes,
+  not UI labels
 
-## สร้างไฟล์ใหม่เมื่อข้อมูลเปลี่ยน
+## Rebuilding when the data changes
 
 ```bash
-python3 tools/build_retail_map.py <ไฟล์.xlsx> -o maps/retail-map-june2026.html
+python3 tools/build_retail_map.py <file.xlsx> -o maps/retail-map-june2026.html
 ```
 
-ต้องมี `pandas` + `openpyxl` — สคริปต์จะอ่าน Excel, คำนวณคอลัมน์เสริม แล้วฝัง JSON
-ลงใน `tools/map_template.html` (แก้หน้าตา/ตัวกรองได้ที่เทมเพลตนี้)
-ไลบรารีใน `tools/vendor/` (Leaflet 1.9.4 + leaflet.heat) จะถูกฝังลงไฟล์ผลลัพธ์ด้วย
+Needs `pandas` + `openpyxl`. The script reads the workbook, derives the extra columns and
+injects the JSON into `tools/map_template.html` (edit that file to change the UI or the
+filters). Leaflet 1.9.4 + leaflet.heat from `tools/vendor/` are inlined into the output.

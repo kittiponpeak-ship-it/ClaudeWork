@@ -37,7 +37,7 @@ CHAINS = [
     ("UFM Fuji Super",     r"UFM|FUJI",                                 "#607d8b"),
     ("Home Fresh Mart",    r"HOME\s*FRESH",                             "#795548"),
 ]
-OTHER = ("อื่น ๆ / Others", "#80868b")
+OTHER = ("Others", "#80868b")
 
 CHAIN_COLORS = {name: color for name, _, color in CHAINS}
 CHAIN_COLORS[OTHER[0]] = OTHER[1]
@@ -54,31 +54,46 @@ def chain_of(name: str) -> str:
 def region_of(lat, lon):
     """Coarse Thai region from coordinates (approximation, for filtering only)."""
     if lat is None or lon is None or (isinstance(lat, float) and math.isnan(lat)):
-        return "ไม่ระบุ / Unknown"
+        return "Unknown"
     if 13.40 <= lat <= 14.25 and 100.20 <= lon <= 100.95:
-        return "กรุงเทพฯ & ปริมณฑล"
+        return "Bangkok & Metro"
     if lat < 11.5:
-        return "ภาคใต้"
+        return "South"
     if lat >= 16.3 and lon < 101.5:
-        return "ภาคเหนือ"
+        return "North"
     if lat >= 14.3 and lon >= 101.6:
-        return "ภาคอีสาน"
+        return "Northeast"
     if lon >= 100.95 and lat < 14.3:
-        return "ภาคตะวันออก"
+        return "East"
     if lon < 99.7:
-        return "ภาคตะวันตก"
-    return "ภาคกลาง"
+        return "West"
+    return "Central"
+
+
+def route_label(route: str) -> str:
+    """English display label for the handful of Thai route codes in the source."""
+    r = (route or "").strip()
+    if not r:
+        return ""
+    if r.startswith("เลื่อนส่ง"):
+        rest = r[len("เลื่อนส่ง"):].strip()
+        return f"Postponed to {rest}" if rest else "Postponed"
+    if r == "เลื่อน":
+        return "Postponed"
+    if r.upper() == "CXL":
+        return "Cancelled (CXL)"
+    return r
 
 
 def status_of(route: str) -> str:
     r = (route or "").strip()
     if not r:
-        return "ไม่ระบุ"
+        return "Unspecified"
     if "CXL" in r.upper():
-        return "ยกเลิก"
+        return "Cancelled"
     if "เลื่อน" in r:
-        return "เลื่อนส่ง"
-    return "ปกติ"
+        return "Postponed"
+    return "Normal"
 
 
 def norm_date(v):
@@ -126,7 +141,8 @@ def build(src: Path, out: Path) -> None:
             "value": value,
             "ship": clean(r.get("ShipTo Name")) or cust,
             "addr": clean(r.get("ShipTo.Address")),
-            "route": route,
+            "route": route_label(route),
+            "routeSrc": route,
             "status": status_of(route),
             "region": region_of(lat, lon),
             "remark": clean(r.get("Remark")),
