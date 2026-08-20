@@ -47,3 +47,11 @@ ORDER BY pclass, sex;
 `sql/06_modify_and_views.sql` creates a `passenger_clean` view with the derived
 columns (surname, title, age group, deck, family size) already worked out — worth
 running early so the rest of your queries stay short.
+
+---
+
+## Also in this repo
+
+`maps/` — interactive customer maps for January and March 2026, one self-contained
+HTML file per month, built from the workbooks in `data/` by
+`tools/build_customer_maps.py`. See [`maps/README.md`](maps/README.md).
