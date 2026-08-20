@@ -1,0 +1,205 @@
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <svg class="pin" viewBox="0 0 24 24" fill="none"><path d="M12 2c-4 0-7.2 3.2-7.2 7.2C4.8 14.6 12 22 12 22s7.2-7.4 7.2-12.8C19.2 5.2 16 2 12 2z" fill="#ea4335"/><circle cx="12" cy="9.2" r="2.8" fill="#fff"/></svg>
+    <div>
+      <h1>Retail Customer Mapping — 2026</h1>
+      <div class="sub" id="srcline">—</div>
+    </div>
+  </div>
+  <div class="monthseg" id="monthSeg"></div>
+  <div class="viewtabs">
+    <button id="tabMap" class="on">🗺️ Map</button>
+    <button id="tabTable">📋 Table</button>
+  </div>
+  <div class="kpis">
+    <div class="kpi accent"><b id="kValue">—</b><span>Total value (THB)</span></div>
+    <div class="kpi"><b id="kShip">—</b><span>Drop points</span></div>
+    <div class="kpi"><b id="kOrders">—</b><span>Orders</span></div>
+    <div class="kpi"><b id="kCust">—</b><span>Customers</span></div>
+    <div class="kpi"><b id="kAvg">—</b><span>Avg / order</span></div>
+  </div>
+</header>
+
+<div class="layout">
+  <!-- ============ FILTERS ============ -->
+  <aside id="filters">
+    <div class="fgroup">
+      <div class="search">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        <input id="q" type="search" placeholder="Search drop point / cust code / retail group">
+      </div>
+    </div>
+
+    <div class="fgroup">
+      <div class="flabel">Month <a data-clear="m">All months</a></div>
+      <div class="chips" id="fM"></div>
+    </div>
+
+    <div class="warnbox" id="mergeNote">
+      <b>Reading the three months together.</b> January and March come from the monthly
+      customer list (one row per ShipTo, store coordinates). June comes from the invoice/route
+      file, which was geocoded to the <b>transporter hub</b> for most transporter shipments —
+      those points are moved back to the store coordinate where the Jan/Mar master data knows it
+      (switch <b>Fix June coordinates</b> off to see the file untouched). June also labels regions
+      differently in the source (North/South/East…), so they are mapped onto the Jan/Mar names.
+    </div>
+
+    <div class="fgroup">
+      <div class="flabel">Retail group <a data-clear="chain">Clear</a></div>
+      <div class="chips" id="fChain"></div>
+    </div>
+
+    <div class="fgroup">
+      <div class="flabel">Transport mode <a data-clear="transport">Clear</a></div>
+      <div class="chips" id="fTransport"></div>
+    </div>
+
+    <div class="fgroup">
+      <div class="flabel">Region <a data-clear="region">Clear</a></div>
+      <div class="chips" id="fRegion"></div>
+    </div>
+
+    <div class="fgroup">
+      <div class="flabel">Value tier <a data-clear="tier">Clear</a></div>
+      <div class="chips" id="fTier"></div>
+    </div>
+
+    <div class="fgroup" id="routeGroup">
+      <div class="flabel">Actual route (June only) <a data-clear="route">Clear</a></div>
+      <div class="chips" id="fRoute"></div>
+    </div>
+
+    <div class="fgroup">
+      <div class="flabel">Drop point <a data-clear="ship">Clear</a></div>
+      <input class="mini" id="shipSearch" placeholder="Type to filter the list…">
+      <div class="listbox" id="fShip"></div>
+    </div>
+
+    <div class="fgroup">
+      <div class="flabel">Minimum value per drop point</div>
+      <div class="rangewrap"><input id="minVal" type="range" min="0" max="100" value="0"><b id="minValLbl">0</b></div>
+    </div>
+
+    <div class="fgroup">
+      <div class="flabel">Minimum orders</div>
+      <div class="rangewrap"><input id="minOrd" type="range" min="1" max="10" value="1"><b id="minOrdLbl">1+</b></div>
+    </div>
+
+    <div class="fgroup">
+      <div class="flabel">Focus on top drop points</div>
+      <div class="seg" id="topN">
+        <button data-v="0" class="on">All</button>
+        <button data-v="10">Top 10</button>
+        <button data-v="20">Top 20</button>
+        <button data-v="50">Top 50</button>
+      </div>
+    </div>
+
+    <div class="fgroup">
+      <div class="flabel">Colour markers by</div>
+      <div class="seg" id="colorBy">
+        <button data-v="chain" class="on">Group</button>
+        <button data-v="transport">Transport</button>
+        <button data-v="month">Month</button>
+      </div>
+    </div>
+
+    <div class="fgroup">
+      <div class="flabel">Marker size</div>
+      <div class="seg" id="sizeMode">
+        <button data-v="value" class="on"><span class="ico" style="width:12px;height:12px"></span>By value</button>
+        <button data-v="uniform"><span class="ico" style="width:8px;height:8px"></span>Uniform</button>
+      </div>
+    </div>
+
+    <div class="fgroup">
+      <div class="flabel">Display</div>
+      <label class="switch"><span>Heatmap mode</span><input type="checkbox" id="optHeat"></label>
+      <label class="switch"><span>Show point labels</span><input type="checkbox" id="optLabel"></label>
+      <label class="switch"><span>Only coordinates to verify</span><input type="checkbox" id="optCheck"></label>
+      <label class="switch" title="June was geocoded to the transporter hub for many shipments. When on, those points are moved to the store coordinate taken from the Jan/Mar master data."><span>Fix June coordinates</span><input type="checkbox" id="optSnap" checked></label>
+    </div>
+
+    <div class="btnrow">
+      <button class="btn" id="btnReset">↺ Reset filters</button>
+      <button class="btn primary" id="btnCsv">⤓ CSV</button>
+    </div>
+    <div class="hint" id="coordNote"></div>
+  </aside>
+
+  <!-- ============ MAP ============ -->
+  <main>
+    <div id="map"></div>
+    <div id="fallback">
+      <div class="fbnote"><b>Offline mode</b><br>The map library could not start — showing a simple coordinate plot instead.<br>Filters and the table still work as usual.</div>
+      <svg id="fbSvg"></svg>
+    </div>
+    <div class="tilewarn" id="tileWarn">Base map tiles could not load — you are offline. Markers, filters and the table still work.</div>
+    <div class="emptymap" id="emptyMap"><span>No records match the current filters</span></div>
+    <div class="maptools">
+      <select class="basesel" id="baseSel">
+        <option value="voyager">Map (Google style)</option>
+        <option value="osm">Streets (OSM)</option>
+        <option value="light">Light</option>
+        <option value="sat">Satellite</option>
+      </select>
+      <button class="iconbtn" id="btnFit" title="Zoom to all points">⤢</button>
+      <button class="iconbtn" id="btnBkk" title="Go to Bangkok">🏙️</button>
+    </div>
+    <div class="legend" id="legend"></div>
+    <div id="tableView">
+      <table id="tbl">
+        <thead><tr>
+          <th data-k="m">Month</th><th data-k="code">Cust code</th><th data-k="ship">Drop point (ShipTo)</th>
+          <th data-k="chain">Retail group</th><th data-k="transport">Transport</th>
+          <th data-k="region">Region</th><th data-k="tier">Tier</th>
+          <th data-k="orders" class="num">Orders</th><th data-k="value" class="num">Value</th>
+          <th data-k="avg" class="num">Value / order</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+      <div class="more" id="tblMore"></div>
+    </div>
+  </main>
+
+  <!-- ============ INSIGHTS ============ -->
+  <aside id="insights">
+    <div class="card">
+      <h2>Value by month</h2>
+      <div id="monthBars"></div>
+      <div class="hint" id="monthHint"></div>
+    </div>
+    <div class="card">
+      <h2>Value by transport mode</h2>
+      <div id="transportBars"></div>
+    </div>
+    <div class="card">
+      <h2>Value by retail group</h2>
+      <div id="chainBars"></div>
+    </div>
+    <div class="card">
+      <h2>Value concentration</h2>
+      <svg class="spark" id="pareto" viewBox="0 0 320 86" preserveAspectRatio="none"></svg>
+      <div class="hint" id="paretoHint"></div>
+    </div>
+    <div class="card">
+      <h2>Top drop points <span id="topCount"></span></h2>
+      <div id="topList"></div>
+    </div>
+    <div class="card">
+      <h2>Value by region</h2>
+      <div id="regionBars"></div>
+    </div>
+    <div class="card" id="dailyCard">
+      <h2>Daily value — June</h2>
+      <svg class="spark" id="daily" viewBox="0 0 320 78" preserveAspectRatio="none"></svg>
+      <div class="hint" id="dailyHint"></div>
+    </div>
+    <div class="card" id="routeCard">
+      <h2>Value by actual route — June</h2>
+      <div id="routeBars"></div>
+    </div>
+  </aside>
+</div>
