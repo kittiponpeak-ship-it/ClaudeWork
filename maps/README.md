@@ -1,63 +1,64 @@
-# แผนที่ลูกค้า (Customer Maps) — มกราคม & มีนาคม 2026
+# Retail Customer Mapping — January & March 2026
 
-แผนที่ interactive สไตล์ Google Maps เดือนละ 1 ไฟล์ สร้างจากไฟล์ Excel ใน `data/`
+One self-contained interactive map per month, built from the workbooks in `data/`.
 
-| ไฟล์ | เดือน | จุดส่ง | Value รวม |
-|---|---|---|---|
-| `January_2026_Customer_Map.html` | มกราคม 2026 | 408 | 9,486,707.55 |
-| `March_2026_Customer_Map.html` | มีนาคม 2026 | 362 | 9,011,244.75 |
+| File | Month | Drop points | Orders | Total value (THB) |
+|---|---|---|---|---|
+| `January_2026_Customer_Map.html` | January 2026 | 408 | 1,541 | 9,486,707.55 |
+| `March_2026_Customer_Map.html` | March 2026 | 362 | 1,258 | 9,011,244.75 |
 
-เปิดด้วยการดับเบิลคลิกไฟล์ได้เลย (ไม่ต้องลง server) ไลบรารีแผนที่ฝังมาในไฟล์แล้ว
-ต้องต่ออินเทอร์เน็ตเฉพาะตอนโหลด "ภาพพื้นหลังแผนที่" เท่านั้น — ถ้าออฟไลน์ หมุดกับตัวกรองยังทำงานครบ
+Double-click to open — no server needed. Leaflet and Leaflet.heat are inlined, so only
+the base-map tiles need a connection; offline, the markers, filters, insights and table
+all still work.
 
-## ตัวกรองในไฟล์
+## Layout
 
-| ตัวกรอง | ใช้ตอบคำถามแบบไหน |
-|---|---|
-| ค้นหา (ชื่อร้าน / Cust Code / ห้าง) | หาสาขาที่ต้องการทันที |
-| ห้างร้าน (Retail Chain) | ดูการกระจายตัวของแต่ละห้างแยกกัน |
-| รูปแบบการส่ง — รถบริษัท / รถจ้าง / ทั้งสองแบบ | จุดไหนยังใช้รถจ้างอยู่ทั้งที่อยู่ใกล้เส้นทางรถบริษัท |
-| โซนพื้นที่ (คำนวณจากพิกัด) | เทียบภาระงานรายภาค |
-| ระดับยอดขาย A/B/C/D | แยกลูกค้าตัวใหญ่ออกจาก long tail |
-| Value ขั้นต่ำ / Orders ขั้นต่ำ | ตัดจุดจิ๊บจ๊อยออกจากภาพ |
-| Top 10 / 20 / 50 / 100 | โฟกัสเฉพาะลูกค้าหลัก |
-| คุณภาพข้อมูลพิกัด | ดูเฉพาะจุดที่พิกัดควรถูกตรวจสอบ |
+- **Top bar** — five live KPIs (total value, drop points, orders, customers, avg per order)
+  and a **Map / Table** switch.
+- **Left rail — filters.** Search (drop point / cust code / retail group), retail group,
+  transport mode, region, value tier, a searchable drop-point list, minimum value per drop
+  point, minimum orders, Top 10/20/50 focus, marker size (by value or uniform), heatmap
+  mode, point labels, and an "only coordinates to verify" switch. Chips are additive —
+  none selected means no restriction on that dimension.
+- **Map** — markers coloured by retail group and sized by turnover, grouped by coordinate
+  so a DC serving several ShipTos becomes one marker. Base map: Google style (CARTO
+  Voyager), Streets (OSM), Light, or Satellite. Popups carry an **Open in Google Maps**
+  link for real navigation.
+- **Right rail — insights.** Value by transport mode, value by retail group, a value
+  concentration (Pareto) chart, the top 12 drop points, and value by region. Everything
+  recomputes against the current filters.
+- **Table view** — every filtered row, sortable on any column, and **CSV** exports exactly
+  what is on screen with a Google Maps link per row.
 
-ตัวเลขข้างตัวกรองแต่ละอันคือจำนวนจุดที่จะได้ **หลังจากคิดตัวกรองอื่นที่เปิดอยู่แล้ว**
-ส่วน KPI สี่ช่องด้านบน (Value, สัดส่วนของทั้งเดือน, จุดส่ง, Orders) อัปเดตตามตัวกรองแบบสด
+## Colours
 
-## สีและการอ่านแผนที่
+Markers use the Google Maps palette — red `#EA4335`, blue `#4285F4`, green `#34A853`,
+yellow `#FBBC04`, purple `#A142F4`, orange `#FF6D00`, … — handed out by descending
+turnover, so the largest retail group is always red and the colours stay stable across
+rebuilds. Transport modes have their own fixed colours: Own Truck green, Transporter blue,
+both yellow. A dashed dark outline marks a coordinate that needs verification.
 
-- **สีหมุด** = ห้างร้าน ใช้ชุดสีของ Google Maps (แดง `#EA4335`, น้ำเงิน `#4285F4`,
-  เขียว `#34A853`, เหลือง `#FBBC04`, ม่วง `#A142F4`, …) เรียงตามยอดขายจากมากไปน้อย
-  ห้างที่ยอดสูงสุดจึงได้สีแดงเสมอ
-- **ขนาดวงกลม** = Value ของจุดส่งนั้น (สเกลตามรากที่สอง เพื่อไม่ให้จุดใหญ่กลืนจุดเล็ก)
-- **ขอบเส้นประสีเข้ม** = พิกัดที่ควรตรวจสอบ (ดูหัวข้อด้านล่าง)
-- แผนที่พื้นหลังเลือกได้ 3 แบบ: Google Style (CARTO Voyager — ใกล้เคียง Google Maps ที่สุด),
-  Light และ Satellite
-- คลิกหมุด → ดูรายละเอียด + ปุ่ม **เปิดใน Google Maps** สำหรับนำทางจริง
-- ปุ่ม **ดาวน์โหลด CSV** ส่งออกเฉพาะรายการที่กรองอยู่ พร้อมลิงก์ Google Maps ต่อแถว
+## What the build does to the data
 
-## เรื่องที่ต้องรู้เกี่ยวกับข้อมูล
+- The trailing `TOTAL` row is a summary line, not a customer, so it is dropped. Each map's
+  total matches that row exactly.
+- The **"No Match"** sheet is left over from an earlier matching pass — every row in it
+  already carries a coordinate on the main sheet. Counting it again would double-count the
+  turnover, so those rows are flagged **verify coordinate** instead (11 in January, 8 in
+  March). They are mostly Tantrapan Chiang Mai and Central Food Retail branches.
+- Region is derived from the coordinate with coarse bounding rules, not from an address
+  field — it is a grouping aid, not a province boundary.
+- Coordinates outside Thailand (lat 5–21, lon 96–106.5) are held back from the map and
+  reported under the filter rail. Neither month currently has any.
 
-- แถว `TOTAL` ท้ายตารางในไฟล์ต้นทางเป็นแถวสรุป ไม่ใช่ลูกค้า — ตัดออกจากแผนที่แล้ว
-  ยอดรวมของทั้งสองไฟล์ตรงกับแถว `TOTAL` เป๊ะ
-- ชีต **"No Match"** ในไฟล์ต้นทางเป็นข้อมูลของรอบก่อนหน้า ทุกแถวในนั้นมีพิกัดครบแล้ว
-  ในชีตหลัก จึง **ไม่ได้** นับเป็นรายการเพิ่ม (ถ้านับจะกลายเป็นนับซ้ำ) แต่ติดธงไว้ว่า
-  "ควรตรวจสอบพิกัด" — มกราคม 11 รายการ มีนาคม 8 รายการ
-- โซนพื้นที่คำนวณจากกรอบพิกัดแบบหยาบ ไม่ใช่ขอบเขตจังหวัดจริง ใช้จัดกลุ่มคร่าว ๆ เท่านั้น
-- พิกัดที่หลุดออกนอกกรอบประเทศไทย (lat 5–21, lon 96–106.5) จะถูกกันออกจากแผนที่
-  และขึ้นในหัวข้อคุณภาพข้อมูล — ปัจจุบันไม่มีทั้งสองเดือน
-
-## สร้างไฟล์ใหม่
+## Rebuilding
 
 ```bash
 pip install openpyxl
 python3 tools/build_customer_maps.py
 ```
 
-อ่าน `data/*.xlsx` → เขียนทับ `maps/*.html` เพิ่มเดือนใหม่ได้โดยเติมใน `SOURCES`
-ที่หัวไฟล์ `tools/build_customer_maps.py`
-
-โครงหน้าเว็บอยู่ใน `tools/map_template.html` ส่วน `tools/vendor/` คือ Leaflet 1.9.4
-(BSD-2-Clause) และ Leaflet.markercluster 1.5.3 (MIT) ที่ถูกฝังเข้าไปในไฟล์ผลลัพธ์
+Reads `data/*.xlsx`, overwrites `maps/*.html`. Add a month by appending to `SOURCES` at the
+top of `tools/build_customer_maps.py`. The page itself lives in `tools/map_template.html`;
+`tools/vendor/` holds Leaflet 1.9.4 (BSD-2-Clause) and Leaflet.heat 0.2.0 (BSD-2-Clause),
+which the build inlines into each output file.

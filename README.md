@@ -52,6 +52,7 @@ running early so the rest of your queries stay short.
 
 ## Also in this repo
 
-`maps/` — interactive customer maps for January and March 2026, one self-contained
-HTML file per month, built from the workbooks in `data/` by
-`tools/build_customer_maps.py`. See [`maps/README.md`](maps/README.md).
+`maps/` — interactive retail customer maps for January and March 2026, one
+self-contained HTML file per month (map + filters + insights + sortable table),
+built from the workbooks in `data/` by `tools/build_customer_maps.py`.
+See [`maps/README.md`](maps/README.md).

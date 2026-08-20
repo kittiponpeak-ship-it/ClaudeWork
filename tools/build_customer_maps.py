@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
-"""สร้างแผนที่ลูกค้าแบบ interactive (สไตล์ Google Maps) จากไฟล์ Excel รายเดือน
+"""Build an interactive, Google-Maps-styled customer map per month from the source workbooks.
 
-ใช้งาน:
+Usage:
+    pip install openpyxl
     python3 tools/build_customer_maps.py
 
-อ่านไฟล์ใน data/*.xlsx (ชีต "Customers with Coordinates", "No Match", "Notes")
-แล้วเขียนไฟล์ HTML แบบไฟล์เดียวจบลงใน maps/ เดือนละ 1 ไฟล์
+Reads data/*.xlsx (sheets "Customers with Coordinates", "No Match", "Notes") and
+writes one self-contained HTML file per month into maps/. Leaflet is inlined, so
+the output opens straight from disk; only the base-map tiles need a connection.
 """
 
 import json
@@ -17,25 +19,25 @@ import openpyxl
 
 ROOT = Path(__file__).resolve().parent.parent
 TEMPLATE = ROOT / "tools" / "map_template.html"
-OUT_DIR = ROOT / "maps"
 VENDOR = ROOT / "tools" / "vendor"
+OUT_DIR = ROOT / "maps"
 
 SOURCES = [
     {
         "xlsx": ROOT / "data" / "January_2026_Customers_with_Coordinates.xlsx",
         "slug": "January_2026",
-        "title": "แผนที่ลูกค้า มกราคม 2026",
-        "month_th": "มกราคม 2026",
+        "title": "Retail Customer Mapping — January 2026",
+        "month": "January 2026",
     },
     {
         "xlsx": ROOT / "data" / "March_2026_Customers_with_Coordinates.xlsx",
         "slug": "March_2026",
-        "title": "แผนที่ลูกค้า มีนาคม 2026",
-        "month_th": "มีนาคม 2026",
+        "title": "Retail Customer Mapping — March 2026",
+        "month": "March 2026",
     },
 ]
 
-# สีชุดเดียวกับหมุด/แบรนด์ของ Google Maps
+# Google Maps marker / brand colours, handed out by descending turnover
 GOOGLE_PALETTE = [
     "#EA4335",  # red
     "#4285F4",  # blue
@@ -53,64 +55,80 @@ GOOGLE_PALETTE = [
     "#9E9E9E",  # grey
 ]
 
-# ระดับยอดขายต่อจุดส่ง (บาท)
+TRANSPORT_LABELS = {
+    "owntruck": "Own Truck",
+    "transporter": "Transporter",
+    "owntruck/transporter": "Own Truck + Transporter",
+}
+TRANSPORT_COLORS = {
+    "Own Truck": "#34A853",
+    "Transporter": "#4285F4",
+    "Own Truck + Transporter": "#FBBC04",
+    "(not specified)": "#9AA0A6",
+}
+
+# Turnover tiers per drop point (THB)
 TIERS = [
-    {"key": "A", "label": "A · ตั้งแต่ 100,000 ขึ้นไป", "min": 100_000, "max": None},
-    {"key": "B", "label": "B · 30,000 – 100,000", "min": 30_000, "max": 100_000},
-    {"key": "C", "label": "C · 10,000 – 30,000", "min": 10_000, "max": 30_000},
-    {"key": "D", "label": "D · ต่ำกว่า 10,000", "min": None, "max": 10_000},
+    ("A", "A · 100K+", 100_000, None),
+    ("B", "B · 30K–100K", 30_000, 100_000),
+    ("C", "C · 10K–30K", 10_000, 30_000),
+    ("D", "D · under 10K", None, 10_000),
 ]
 
-ZONES = [
-    {"key": "BKK", "label": "กรุงเทพฯ และปริมณฑล"},
-    {"key": "C", "label": "ภาคกลาง"},
-    {"key": "E", "label": "ภาคตะวันออก"},
-    {"key": "W", "label": "ภาคตะวันตก"},
-    {"key": "N", "label": "ภาคเหนือ"},
-    {"key": "NE", "label": "ภาคตะวันออกเฉียงเหนือ"},
-    {"key": "S", "label": "ภาคใต้"},
-]
+REGIONS = {
+    "BKK": "Bangkok & Metro",
+    "C": "Central",
+    "E": "Eastern",
+    "W": "Western",
+    "N": "Northern",
+    "NE": "Northeastern",
+    "S": "Southern",
+}
 
 
-def zone_of(lat, lng):
-    """แบ่งโซนอย่างหยาบจากพิกัด — ใช้จัดกลุ่มเชิงภูมิศาสตร์เท่านั้น ไม่ใช่ขอบเขตจังหวัดจริง"""
+def region_of(lat, lng):
+    """Coarse region split from the coordinate — a grouping aid, not a real province boundary."""
     if 13.40 <= lat <= 14.30 and 100.20 <= lng <= 100.95:
-        return "BKK"
+        return REGIONS["BKK"]
     if lat < 11.0:
-        return "S"
+        return REGIONS["S"]
     if lat > 16.5 and lng < 101.5:
-        return "N"
+        return REGIONS["N"]
     if lng > 101.5 and lat > 14.2:
-        return "NE"
+        return REGIONS["NE"]
     if lng > 100.9 and lat <= 14.2:
-        return "E"
+        return REGIONS["E"]
     if lng < 100.2 and lat <= 16.5:
-        return "W"
-    return "C"
+        return REGIONS["W"]
+    return REGIONS["C"]
 
 
 def tier_of(value):
-    for t in TIERS:
-        if (t["min"] is None or value >= t["min"]) and (t["max"] is None or value < t["max"]):
-            return t["key"]
-    return "D"
+    for _key, label, lo, hi in TIERS:
+        if (lo is None or value >= lo) and (hi is None or value < hi):
+            return label
+    return TIERS[-1][1]
 
 
 def clean(text):
-    """ตัดช่องว่างซ้ำและอักขระควบคุมออกจากข้อความจาก Excel"""
+    """Collapse whitespace and normalise text coming out of Excel."""
     if text is None:
         return ""
-    text = unicodedata.normalize("NFC", str(text))
-    return re.sub(r"\s+", " ", text).strip()
+    return re.sub(r"\s+", " ", unicodedata.normalize("NFC", str(text))).strip()
+
+
+def transport_of(raw):
+    return TRANSPORT_LABELS.get(clean(raw).lower(), clean(raw) or "(not specified)")
 
 
 def read_month(path):
-    """คืนค่า (rows, skipped, notes) — skipped = แถวที่ไม่มีพิกัดใช้งานได้จริง"""
+    """Return (rows, skipped, notes) — skipped = rows without a usable coordinate."""
     wb = openpyxl.load_workbook(path, data_only=True)
     ws = wb["Customers with Coordinates"]
 
-    # ชีต "No Match" คือรายการที่รอบก่อนหน้าจับคู่พิกัดไม่ได้ ตอนนี้ทุกแถวมีพิกัดในชีตหลักแล้ว
-    # จึงไม่นับเป็นรายการแยก แต่ติดธงไว้ว่าพิกัดควรถูกตรวจสอบด้วยตา
+    # The "No Match" sheet is left over from an earlier matching pass: every row in it
+    # now carries a coordinate on the main sheet. Counting it again would double-count
+    # the turnover, so instead flag those rows for a visual check.
     flagged = set()
     if "No Match" in wb.sheetnames:
         for raw in wb["No Match"].iter_rows(min_row=2, values_only=True):
@@ -119,102 +137,86 @@ def read_month(path):
                 flagged.add((clean(code).upper(), clean(name).upper()))
 
     rows, skipped = [], []
-    for i, raw in enumerate(ws.iter_rows(min_row=2, values_only=True)):
+    for raw in ws.iter_rows(min_row=2, values_only=True):
         chain, code, name, value, orders, mode, lat, lng = (list(raw) + [None] * 8)[:8]
         chain = clean(chain)
-        # แถวสรุปท้ายตาราง ไม่ใช่ลูกค้า
+        # trailing summary line, not a customer
         if not chain or chain.upper() == "TOTAL":
             continue
+        value = float(value or 0)
+        entry = {"chain": chain, "code": clean(code), "ship": clean(name), "value": round(value, 2)}
         try:
             lat, lng = float(lat), float(lng)
         except (TypeError, ValueError):
-            skipped.append({"c": chain, "id": clean(code), "n": clean(name), "v": float(value or 0)})
+            skipped.append(entry)
             continue
-        # พิกัดนอกกรอบประเทศไทย = ข้อมูลผิด ไม่เอาขึ้นแผนที่
+        # a coordinate outside Thailand is bad data — keep it off the map
         if not (5.0 <= lat <= 21.0 and 96.0 <= lng <= 106.5):
-            skipped.append({"c": chain, "id": clean(code), "n": clean(name), "v": float(value or 0)})
+            skipped.append(entry)
             continue
-        value = float(value or 0)
-        rows.append({
-            "k": f"r{i}",
-            "c": chain,
-            "id": clean(code),
-            "n": clean(name),
-            "v": round(value, 2),
-            "o": int(orders or 0),
-            "m": clean(mode) or "-",
-            "z": zone_of(lat, lng),
-            "t": tier_of(value),
+        entry.update({
+            "orders": int(orders or 0),
+            "transport": transport_of(mode),
+            "region": region_of(lat, lng),
+            "tier": tier_of(value),
             "lat": round(lat, 6),
-            "lng": round(lng, 6),
-            "x": 1 if (clean(code).upper(), clean(name).upper()) in flagged else 0,
+            "lon": round(lng, 6),
+            "check": 1 if (clean(code).upper(), clean(name).upper()) in flagged else 0,
         })
+        rows.append(entry)
 
-    skipped.sort(key=lambda r: -r["v"])
-
+    skipped.sort(key=lambda r: -r["value"])
     notes = []
     if "Notes" in wb.sheetnames:
         notes = [clean(r[0]) for r in wb["Notes"].iter_rows(values_only=True) if clean(r[0])]
-
     return rows, skipped, notes
 
 
 def build(src):
     rows, skipped, notes = read_month(src["xlsx"])
 
-    # ให้ห้างที่ยอดสูงสุดได้สีแรกของ palette เสมอ (สีจึงคงที่เมื่อรันซ้ำ)
     totals = {}
     for r in rows:
-        totals[r["c"]] = totals.get(r["c"], 0) + r["v"]
+        totals[r["chain"]] = totals.get(r["chain"], 0) + r["value"]
     order = sorted(totals, key=lambda c: (-totals[c], c))
-    chains = {
-        c: {"color": GOOGLE_PALETTE[i % len(GOOGLE_PALETTE)], "value": round(totals[c], 2)}
-        for i, c in enumerate(order)
-    }
+    colors = {c: GOOGLE_PALETTE[i % len(GOOGLE_PALETTE)] for i, c in enumerate(order)}
 
-    flagged = [r for r in rows if r["x"]]
-    month_value = sum(r["v"] for r in rows) + sum(r["v"] for r in skipped)
+    flagged = [r for r in rows if r["check"]]
+    month_value = sum(r["value"] for r in rows) + sum(r["value"] for r in skipped)
     data = {
         "slug": src["slug"],
-        "month": src["month_th"],
+        "month": src["month"],
+        "source": src["xlsx"].name,
         "rows": rows,
-        "chains": chains,
-        "zones": ZONES,
-        "tiers": [{"key": t["key"], "label": t["label"]} for t in TIERS],
+        "colors": colors,
+        "transportColors": TRANSPORT_COLORS,
         "skipped": skipped,
-        "flaggedCount": len(flagged),
         "notes": notes,
         "monthValue": round(month_value, 2),
     }
 
-    vendor_css = "\n".join(
-        (VENDOR / f).read_text(encoding="utf-8")
-        for f in ("leaflet.css", "MarkerCluster.css", "MarkerCluster.Default.css")
-    )
+    vendor_css = (VENDOR / "leaflet.css").read_text(encoding="utf-8")
     vendor_js = "\n;\n".join(
-        (VENDOR / f).read_text(encoding="utf-8")
-        for f in ("leaflet.js", "leaflet.markercluster.js")
+        (VENDOR / f).read_text(encoding="utf-8") for f in ("leaflet.js", "leaflet-heat.js")
     )
 
     html = TEMPLATE.read_text(encoding="utf-8")
     for token, value in {
         "__TITLE__": src["title"],
-        "__MONTH_TH__": src["month_th"],
-        "__ROWCOUNT__": f"{len(rows):,}",
-        "__FLAGGED__": str(len(flagged)),
-        "__SKIPPED__": str(len(skipped)),
+        "__MONTH__": src["month"],
         "__VENDOR_CSS__": vendor_css,
         "__VENDOR_JS__": vendor_js,
         "__DATA_JSON__": json.dumps(data, ensure_ascii=False, separators=(",", ":")),
     }.items():
         html = html.replace(token, value)
+
     OUT_DIR.mkdir(exist_ok=True)
     out = OUT_DIR / f"{src['slug']}_Customer_Map.html"
     out.write_text(html, encoding="utf-8")
 
     print(f"{out.relative_to(ROOT)}")
-    print(f"   จุดบนแผนที่ {len(rows):,} · ต้องตรวจพิกัด {len(flagged)} · ไม่มีพิกัด {len(skipped)} · "
-          f"ห้าง {len(chains)} · Value รวม {month_value:,.2f} · {out.stat().st_size/1024:.0f} KB")
+    print(f"   {len(rows):,} drop points · {len(flagged)} to verify · {len(skipped)} without coordinates · "
+          f"{len(colors)} retail groups · value {month_value:,.2f} · {out.stat().st_size/1024:.0f} KB")
     return out
 
 
