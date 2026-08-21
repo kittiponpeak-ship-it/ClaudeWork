@@ -476,27 +476,6 @@ function render(){
   bars(document.getElementById('transportBars'), agg('transport'), tColorOf);
   bars(document.getElementById('chainBars'), agg('chain'), colorOf);
   bars(document.getElementById('regionBars'), agg('region'), ()=> '#1a73e8');
-
-  const geoCount = g => filtered.filter(r=>r.geo===g).length;
-  const checks  = filtered.filter(r=>r.check).length;
-  const snapped = geoCount('snapped'), sharedN = geoCount('shared');
-  const codeN   = geoCount('bycode'),   fixedN  = geoCount('corrected');
-  const nogeo   = filtered.filter(r=>!hasGeo(r)).length;
-  const mUsed   = MONTHS.filter(m=>filtered.some(r=>r.m===m.key)).map(m=>m.label).join(' + ') || '—';
-  document.getElementById('coordNote').innerHTML =
-    `${nf0.format(new Set(filtered.map(r=>r.k)).size)} drop points · ${nf0.format(filtered.length)} month rows · ${pts.length} distinct coordinates · ${esc(mUsed)}` +
-    (checks?` · <b>${checks}</b> flagged to verify`:'') +
-    (nogeo?` · <b>${nogeo}</b> without a coordinate (not on the map)`:'') +
-    `<br>A drop point that appears in several months is one marker; its value is the sum of those months.` +
-    `<br>Value = Ambient + Temp Controlled turnover per ShipTo. Orders = distinct order numbers.` +
-    `<br><b>Coordinates:</b> ` + [
-      fixedN  ? `<b>${fixedN}</b> corrected by hand` : '',
-      sharedN ? `<b>${sharedN}</b> sharing a pin with another branch — the source geocode matched on cust code, and one code covers many branches` : '',
-      state.snap && snapped ? `<b>${snapped}</b> June row(s) moved off their cust-code pin onto the branch's own coordinate` : '',
-      codeN ? `<b>${codeN}</b> still on a cust-code pin (the branch is not in the Jan/Mar master)` : ''
-    ].filter(Boolean).join(' · ') +
-    (state.snap ? `<br>Turn off “Fix June coordinates” to see the June file exactly as it was.` : '') +
-    `<br>Note: some coordinates are genuinely DC / head-office locations, so several drop points stack on one marker.`;
 }
 
 /* ---------------- events ---------------- */
