@@ -29,9 +29,9 @@ const mColorOf = k => MCOLORS[k] || OTHER_COLOR;
 const money = v => v>=1e6 ? (v/1e6).toFixed(2)+'M' : v>=1e3 ? nf0.format(Math.round(v)) : nf0.format(v);
 const esc = s => String(s==null?'':s).replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
 
-/* Coordinates: r.lat/r.lon are the best-known store coordinates (June points
-   moved off the transporter hub where the master data knew the store);
-   r.olat/r.olon are exactly what the source file contained. */
+/* Coordinates: r.lat/r.lon are the best-known store coordinates (June pins moved
+   off their cust-code coordinate onto the branch's own, where the Jan/Mar master
+   data knew it); r.olat/r.olon are exactly what the source file contained. */
 const LAT = r => state.snap ? r.lat : r.olat;
 const LON = r => state.snap ? r.lon : r.olon;
 const hasGeo = r => LAT(r) != null && LON(r) != null;
@@ -170,7 +170,7 @@ function popupHtml(p){
     <span class="badge" style="background:${colorOf(p.chain)}">${esc(p.chain)}</span>
     <h4>${esc(p.title)}</h4>
     <div class="addr">${ships.length>1?ships.length+' drop points at this coordinate · ':''}${p.lat.toFixed(5)}, ${p.lon.toFixed(5)}</div>
-    ${p.check?`<div class="check">Coordinate flagged for verification — either unmatched in the source file, or a shared transporter/DC coordinate rather than the store itself.</div>`:''}
+    ${p.check?`<div class="check">Coordinate flagged for verification — it was unmatched in the source file, or it is a cust-code pin shared by several branches rather than this branch's own location.</div>`:''}
     ${tags?`<div class="tags">${tags}</div>`:''}
     <div class="grid">
       <div><b>${nf0.format(Math.round(p.value))}</b><span>Total value (THB)</span></div>
@@ -480,7 +480,7 @@ function render(){
   const geoCount = g => filtered.filter(r=>r.geo===g).length;
   const checks  = filtered.filter(r=>r.check).length;
   const snapped = geoCount('snapped'), sharedN = geoCount('shared');
-  const hubN    = geoCount('hub'),     fixedN  = geoCount('corrected');
+  const codeN   = geoCount('bycode'),   fixedN  = geoCount('corrected');
   const nogeo   = filtered.filter(r=>!hasGeo(r)).length;
   const mUsed   = MONTHS.filter(m=>filtered.some(r=>r.m===m.key)).map(m=>m.label).join(' + ') || '—';
   document.getElementById('coordNote').innerHTML =
@@ -491,9 +491,9 @@ function render(){
     `<br>Value = Ambient + Temp Controlled turnover per ShipTo. Orders = distinct order numbers.` +
     `<br><b>Coordinates:</b> ` + [
       fixedN  ? `<b>${fixedN}</b> corrected by hand` : '',
-      sharedN ? `<b>${sharedN}</b> sharing a pin with another branch — the source geocode matched on cust code, so branches of the same chain can land on each other's coordinates` : '',
-      state.snap && snapped ? `<b>${snapped}</b> June row(s) moved off the transporter hub onto the store coordinate` : '',
-      hubN ? `<b>${hubN}</b> still on a transporter hub` : ''
+      sharedN ? `<b>${sharedN}</b> sharing a pin with another branch — the source geocode matched on cust code, and one code covers many branches` : '',
+      state.snap && snapped ? `<b>${snapped}</b> June row(s) moved off their cust-code pin onto the branch's own coordinate` : '',
+      codeN ? `<b>${codeN}</b> still on a cust-code pin (the branch is not in the Jan/Mar master)` : ''
     ].filter(Boolean).join(' · ') +
     (state.snap ? `<br>Turn off “Fix June coordinates” to see the June file exactly as it was.` : '') +
     `<br>Note: some coordinates are genuinely DC / head-office locations, so several drop points stack on one marker.`;

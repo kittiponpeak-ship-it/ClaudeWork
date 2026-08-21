@@ -137,13 +137,15 @@ months = [
 # ---------------------------------------------------- June: invoice -> ShipTo
 jrows = jun['rows']
 
-# Coordinates the June file reuses for many different ShipTos are hubs
-# (the transporter's depot), not stores.
-by_coord = defaultdict(set)
+# June's coordinates were joined on cust code alone: 120 of its 122 cust codes
+# resolve to exactly one coordinate, so every branch sharing a code got the same
+# pin.  Code CM01347 covers 147 different Big C ShipTos and put all 321 of its
+# invoice rows on Big C (Pattaya Marina)'s coordinate.  A code covering more than
+# one ShipTo name therefore has a code-level pin, not a branch-level one.
+code_ships = defaultdict(set)
 for r in jrows:
-    if r.get('lat') is not None:
-        by_coord[(round(r['lat'], 5), round(r['lon'], 5))].add(shipkey(r['ship']))
-HUBS = {c for c, names in by_coord.items() if len(names) >= 5}
+    code_ships[r['code']].add(shipkey(r['ship']))
+BY_CODE = {c for c, names in code_ships.items() if len(names) > 1}
 
 groups = {}
 for idx, r in enumerate(jrows):
@@ -185,8 +187,8 @@ for k, g in sorted(groups.items(), key=lambda kv: -kv[1]['value']):
             geo = 'corrected' if k in COORD_FIXES else 'snapped'
     elif olat is None:
         geo = 'none'
-    elif (round(olat, 5), round(olon, 5)) in HUBS:
-        geo = 'hub'
+    elif g['codes'].most_common(1)[0][0] in BY_CODE:
+        geo = 'bycode'
     stats[geo] += 1
 
     value = round(g['value'], 2)
@@ -198,7 +200,7 @@ for k, g in sorted(groups.items(), key=lambda kv: -kv[1]['value']):
         'region': g['regions'].most_common(1)[0][0],
         'tier': tier_of(value),
         'lat': lat, 'lon': lon, 'olat': olat, 'olon': olon, 'geo': geo,
-        'check': 1 if geo in ('hub', 'none') else 0,
+        'check': 1 if geo in ('bycode', 'none') else 0,
         'routes': sorted(g['routes']),
     }
     i = len(jun_rows)
@@ -211,7 +213,7 @@ for k, g in sorted(groups.items(), key=lambda kv: -kv[1]['value']):
 jun_notes = [
     'ที่มา: %s (invoice level, 1 แถว = 1 ใบกำกับ)' % jun['source'],
     'รวมเป็นราย ShipTo เหมือน Jan/Mar: %d ใบกำกับ → %d drop points' % (len(jrows), len(jun_rows)),
-    'Coordinate ของ June ถูก geocode ไปที่ hub ของ transporter: ย้ายกลับมาที่พิกัดสาขาแล้ว %d ราย, ยังค้างอยู่ที่ hub %d ราย, ไม่มีพิกัด %d ราย' % (stats['snapped'], stats['hub'], stats['none']),
+    'Coordinate ของ June ผูกกับ Cust Code ไม่ใช่สาขา (code เดียวมีหลาย ShipTo): ย้ายมาที่พิกัดสาขาจาก master ของ Jan/Mar แล้ว %d ราย, แก้มือ %d ราย, ยังเป็นพิกัดระดับ code %d ราย, ไม่มีพิกัด %d ราย' % (stats['snapped'], stats['corrected'], stats['bycode'], stats['none']),
     'Order = จำนวน Order No ไม่ซ้ำกัน (%d จาก %d ใบกำกับ)' % (len({r['order'] for r in jrows}), len(jrows)),
     'Tier คำนวณใหม่จากยอดรวมต่อ ShipTo ด้วยเกณฑ์เดียวกับ Jan/Mar (A 100K+, B 30–100K, C 10–30K, D <10K)',
 ]

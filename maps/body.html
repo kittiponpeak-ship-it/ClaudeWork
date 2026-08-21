@@ -39,14 +39,15 @@
 
     <div class="warnbox" id="mergeNote">
       <b>Reading the three months together.</b> January and March come from the monthly
-      customer list (one row per ShipTo, store coordinates). June comes from the invoice/route
-      file, which was geocoded to the <b>transporter hub</b> for most transporter shipments —
-      those points are moved back to the store coordinate where the Jan/Mar master data knows it
-      (switch <b>Fix June coordinates</b> off to see the file untouched). June also labels regions
-      differently in the source (North/South/East…), so they are mapped onto the Jan/Mar names.
-      Separately, the source geocode matched Big C / CP Axtra branches on cust code alone — branches
-      of one chain share a code — so a number of pins carry another branch's coordinate. Four are
-      corrected here; the rest are marked <b>shared coord</b> and flagged to verify.
+      customer list (one row per ShipTo). June comes from the invoice/route file, whose
+      coordinates were joined on <b>cust code</b> rather than on the branch: 120 of its 122
+      codes resolve to a single point, so all 321 rows under the Big C code sit on Big C
+      (Pattaya Marina)'s coordinate. Those pins are moved onto the branch's own coordinate
+      wherever the Jan/Mar master data knows it (switch <b>Fix June coordinates</b> off to see
+      the file untouched); the rest stay flagged. The same join affects a smaller number of
+      Jan/Mar rows — 23 coordinates carry two to five branch names each, marked
+      <b>shared coord</b>. June also labels regions differently in the source
+      (North/South/East…), so they are mapped onto the Jan/Mar names.
     </div>
 
     <div class="fgroup">

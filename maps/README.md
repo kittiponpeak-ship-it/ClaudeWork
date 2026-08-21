@@ -30,25 +30,28 @@ regions as `North` / `South` / `East`; January and March write `Tops / Central`,
 `Eastern`. June is mapped onto the Jan/Mar names so one filter chip covers all
 three months. `BIC C SUPERCENTER` (typo in the June file) is read as `BIG C`.
 
-**Different coordinates — the big one.** For shipments moving by transporter, the
-June file was geocoded to the *transporter's hub*, not to the store: 321 invoice
-rows sit on one Pattaya coordinate and 276 more on one Bangkok coordinate. Where
-the Jan/Mar master data knows the store, those points are moved back to the store
-coordinate (189 of 343 June drop points); 35 stay on a hub and are flagged
-"verify coord", 2 have no coordinate at all. The **Fix June coordinates** switch
-turns this off and shows the file exactly as it was. Every row keeps its original
-coordinate, and the CSV export carries both plus a `CoordinateSource` column
-(`source` / `snapped` / `corrected` / `shared` / `hub` / `none`).
+**Different coordinates — the big one.** June's coordinates were joined on *cust
+code*, not on the branch: 120 of its 122 cust codes resolve to exactly one point.
+Code `CM01347` covers 147 different Big C ShipTos, so all 321 of its invoice rows
+carry Big C (Pattaya Marina)'s coordinate; two Tops/Lotus codes put 276 more rows
+on one Bangkok point. Where the Jan/Mar master data knows the branch, those pins
+are moved onto the branch's own coordinate (185 of 343 June drop points, plus the
+4 corrected by hand); 38 stay on a cust-code pin and are flagged "verify coord",
+2 have no coordinate at all. The **Fix June coordinates** switch turns this off
+and shows the file exactly as it was. Every row keeps its original coordinate,
+and the CSV export carries both plus a `CoordinateSource` column
+(`source` / `snapped` / `corrected` / `shared` / `bycode` / `none`).
 
-**Branch coordinates matched on cust code.** Every Big C branch shares one cust
-code (`CM01347`), and CP Axtra behaves the same way, so the geocode behind the
-source files sometimes handed a branch the coordinate of a completely different
-branch — `Pattaya 2` sat in Pattani, `Mahathun` and `Ramintra` in Songkhla and
-Phatthalung. Four of them are corrected by hand in `COORD_FIXES`, applied to all
-three months, with the region re-derived from the corrected pin (the source files
-derive region from the coordinate, so a moved pin needs a new region). The same
-failure leaves 23 coordinates carrying two to five different branch names each —
-those rows are marked `shared` and flagged to verify rather than silently trusted.
+**The same join hurts Jan/Mar, less badly.** January's own notes say its match was
+redone on Cust Code + ShipTo Name (97.3% exact), which is why Jan/Mar are mostly
+branch-accurate. Where it still fell back to the code alone, a branch was handed
+the coordinate of a completely different branch — `Pattaya 2` sat in Pattani,
+`Mahathun` and `Ramintra` in Songkhla and Phatthalung. Four of them are corrected
+by hand in `COORD_FIXES`, applied to all three months, with the region re-derived
+from the corrected pin (the source files derive region from the coordinate, so a
+moved pin needs a new region). The same failure leaves 23 coordinates carrying two
+to five different branch names each — those rows are marked `shared` and flagged
+to verify rather than silently trusted.
 
 **Cross-month identity.** The same store is spelled slightly differently between
 the monthly files and the June route file, so each row also carries an id into one
