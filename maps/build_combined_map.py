@@ -78,6 +78,23 @@ TRANSPORT_COLORS = {
 }
 MONTH_COLORS = {'2026-01': '#1A73E8', '2026-03': '#12B5CB', '2026-06': '#E8710A'}
 
+# Coordinates corrected by hand.  All Big C branches share one cust code
+# (CM01347), so the geocode behind the source files matched on the code alone
+# and handed several branches the coordinate of an unrelated branch — these
+# four landed in the deep south.  Keyed by shipkey(), applied to every month.
+COORD_FIXES = {
+    'BIG C SUPERCENTER CO LTD PATTAYA 2': (12.915305025205562, 100.89467767833683),
+    'BIG C SUPERCENTER CO LTD MAHATHUN':  (13.741699438833214, 100.54903710895151),
+    'BIG C SUPERCENTER CO LTD SAMRONG':   (13.650368172660121, 100.59652357045272),
+    'BIG C SUPERCENTER CO LTD RAMINTRA':  (13.861051834227965, 100.61845645313313),
+}
+
+def knn_region(lat, lon, ref, k=7):
+    """Region of the k nearest reference points — the files derive region from
+    the coordinate, so a moved pin has to be re-derived the same way."""
+    near = sorted(ref, key=lambda t: km((lat, lon), (t[0], t[1])))[:k]
+    return Counter(t[2] for t in near).most_common(1)[0][0]
+
 jan, jan_html = read_data(JAN)
 mar, _        = read_data(MAR)
 jun, _        = read_data(JUN)
@@ -93,17 +110,20 @@ for src in (mar, jan):                       # March first, January fills the ga
         k = shipkey(r['ship'])
         if k not in master and r.get('lat') is not None:
             master[k] = (r['lat'], r['lon'])
+master.update(COORD_FIXES)
 
 # ---------------------------------------------------- Jan / Mar passthrough
 def month_from_monthly_file(d, key, label, short):
     rows = []
     for r in d['rows']:
+        fix = COORD_FIXES.get(shipkey(r['ship']))
+        lat, lon = (fix if fix else (r['lat'], r['lon']))
         rows.append({
             'chain': r['chain'], 'code': r['code'], 'ship': r['ship'],
             'value': round(r['value'], 2), 'orders': r['orders'],
             'transport': r['transport'], 'region': r['region'], 'tier': r['tier'],
-            'lat': r['lat'], 'lon': r['lon'], 'olat': r['lat'], 'olon': r['lon'],
-            'geo': 'source', 'check': 1 if r.get('check') else 0,
+            'lat': lat, 'lon': lon, 'olat': r['lat'], 'olon': r['lon'],
+            'geo': 'corrected' if fix else 'source', 'check': 1 if r.get('check') else 0,
         })
     return {'key': key, 'label': label, 'short': short, 'source': d['source'],
             'monthValue': round(sum(r['value'] for r in rows), 2),
@@ -161,7 +181,8 @@ for k, g in sorted(groups.items(), key=lambda kv: -kv[1]['value']):
     ref = master.get(k)
     if ref:
         if olat is None or km(ref, (olat, olon)) > 0.1:
-            lat, lon, geo = ref[0], ref[1], 'snapped'
+            lat, lon = ref
+            geo = 'corrected' if k in COORD_FIXES else 'snapped'
     elif olat is None:
         geo = 'none'
     elif (round(olat, 5), round(olon, 5)) in HUBS:
@@ -204,6 +225,47 @@ months.append({'key': '2026-06', 'label': 'June 2026', 'short': 'Jun',
                'source': jun['source'],
                'monthValue': round(sum(r['value'] for r in jun_rows), 2),
                'notes': jun_notes, 'rows': jun_rows, 'orders': jun_orders})
+
+# ---------------------------------------------------- coordinate hygiene
+# Reference points for re-deriving a region: Jan/Mar rows the source matched
+# cleanly and that do not sit on a coordinate shared with another branch.
+ref_pts = []
+seen_at = defaultdict(set)
+for m in months[:2]:
+    for r in m['rows']:
+        if r['olat'] is not None:
+            seen_at[(round(r['olat'], 5), round(r['olon'], 5))].add(shipkey(r['ship']))
+for m in months[:2]:
+    for r in m['rows']:
+        if (r['geo'] == 'source' and not r['check'] and r['lat'] is not None
+                and len(seen_at[(round(r['olat'], 5), round(r['olon'], 5))]) == 1):
+            ref_pts.append((r['lat'], r['lon'], r['region']))
+
+fixed_regions = {}
+for m in months:
+    for r in m['rows']:
+        if r['geo'] == 'corrected':
+            k = shipkey(r['ship'])
+            if k not in fixed_regions:
+                fixed_regions[k] = knn_region(r['lat'], r['lon'], ref_pts)
+            r['region'] = fixed_regions[k]
+
+# One coordinate serving several different branch names is the same geocoding
+# failure the four hand-fixes came from, so flag the rest for a look.
+shared = defaultdict(set)
+for m in months:
+    for r in m['rows']:
+        if r['lat'] is not None:
+            shared[(round(r['lat'], 5), round(r['lon'], 5))].add(shipkey(r['ship']))
+n_shared = 0
+for m in months:
+    for r in m['rows']:
+        if r['lat'] is None:
+            continue
+        if len(shared[(round(r['lat'], 5), round(r['lon'], 5))]) > 1 and r['geo'] == 'source':
+            r['geo'] = 'shared'
+            r['check'] = 1
+            n_shared += 1
 
 # ---------------------------------------------------- canonical drop points
 # The same store is spelled slightly differently between the monthly files and
@@ -257,4 +319,6 @@ print('drop points (distinct across months):', len(dp_labels))
 print('rows  :', {m['short']: len(m['rows']) for m in months})
 print('value :', {m['short']: m['monthValue'] for m in months})
 print('june geo:', dict(stats))
+print('corrected by hand:', len(COORD_FIXES), 'ship names ->', fixed_regions)
+print('rows on a coordinate shared with another branch:', n_shared)
 print('wrote :', OUT, f'{OUT.stat().st_size/1024:.0f} KB')

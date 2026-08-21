@@ -38,7 +38,17 @@ coordinate (189 of 343 June drop points); 35 stay on a hub and are flagged
 "verify coord", 2 have no coordinate at all. The **Fix June coordinates** switch
 turns this off and shows the file exactly as it was. Every row keeps its original
 coordinate, and the CSV export carries both plus a `CoordinateSource` column
-(`source` / `snapped` / `hub` / `none`).
+(`source` / `snapped` / `corrected` / `shared` / `hub` / `none`).
+
+**Branch coordinates matched on cust code.** Every Big C branch shares one cust
+code (`CM01347`), and CP Axtra behaves the same way, so the geocode behind the
+source files sometimes handed a branch the coordinate of a completely different
+branch — `Pattaya 2` sat in Pattani, `Mahathun` and `Ramintra` in Songkhla and
+Phatthalung. Four of them are corrected by hand in `COORD_FIXES`, applied to all
+three months, with the region re-derived from the corrected pin (the source files
+derive region from the coordinate, so a moved pin needs a new region). The same
+failure leaves 23 coordinates carrying two to five different branch names each —
+those rows are marked `shared` and flagged to verify rather than silently trusted.
 
 **Cross-month identity.** The same store is spelled slightly differently between
 the monthly files and the June route file, so each row also carries an id into one

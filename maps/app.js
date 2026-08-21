@@ -434,7 +434,7 @@ function table(rows){
     return `<tr>
     <td class="nw"><span class="tag month" style="background:${mColorOf(r.m)}">${esc(mShort(r.m))}</span></td>
     <td>${esc(r.code)}</td>
-    <td>${esc(r.ship)}${r.check?' <span class="tag warn">verify coord</span>':''}${r.geo==='snapped'&&state.snap?' <span class="tag grey">coord fixed</span>':''}<br>${geo}</td>
+    <td>${esc(r.ship)}${r.geo==='shared'?' <span class="tag warn">shared coord</span>':r.check?' <span class="tag warn">verify coord</span>':''}${r.geo==='corrected'?' <span class="tag grey">coord corrected</span>':r.geo==='snapped'&&state.snap?' <span class="tag grey">coord fixed</span>':''}<br>${geo}</td>
     <td><span class="tag" style="background:${colorOf(r.chain)}">${esc(r.chain)}</span></td>
     <td><span class="tag" style="background:${tColorOf(r.transport)}">${esc(r.transport)}</span></td>
     <td class="nw">${esc(r.region)}</td>
@@ -477,8 +477,10 @@ function render(){
   bars(document.getElementById('chainBars'), agg('chain'), colorOf);
   bars(document.getElementById('regionBars'), agg('region'), ()=> '#1a73e8');
 
+  const geoCount = g => filtered.filter(r=>r.geo===g).length;
   const checks  = filtered.filter(r=>r.check).length;
-  const snapped = filtered.filter(r=>r.geo==='snapped').length;
+  const snapped = geoCount('snapped'), sharedN = geoCount('shared');
+  const hubN    = geoCount('hub'),     fixedN  = geoCount('corrected');
   const nogeo   = filtered.filter(r=>!hasGeo(r)).length;
   const mUsed   = MONTHS.filter(m=>filtered.some(r=>r.m===m.key)).map(m=>m.label).join(' + ') || '—';
   document.getElementById('coordNote').innerHTML =
@@ -487,8 +489,14 @@ function render(){
     (nogeo?` · <b>${nogeo}</b> without a coordinate (not on the map)`:'') +
     `<br>A drop point that appears in several months is one marker; its value is the sum of those months.` +
     `<br>Value = Ambient + Temp Controlled turnover per ShipTo. Orders = distinct order numbers.` +
-    (state.snap && snapped ? `<br><b>${snapped}</b> June row(s) moved from the transporter hub to the store coordinate. Turn off “Fix June coordinates” to see the file as it was.` : '') +
-    `<br>Note: some coordinates are DC / head-office locations, so several drop points stack on one marker.`;
+    `<br><b>Coordinates:</b> ` + [
+      fixedN  ? `<b>${fixedN}</b> corrected by hand` : '',
+      sharedN ? `<b>${sharedN}</b> sharing a pin with another branch — the source geocode matched on cust code, so branches of the same chain can land on each other's coordinates` : '',
+      state.snap && snapped ? `<b>${snapped}</b> June row(s) moved off the transporter hub onto the store coordinate` : '',
+      hubN ? `<b>${hubN}</b> still on a transporter hub` : ''
+    ].filter(Boolean).join(' · ') +
+    (state.snap ? `<br>Turn off “Fix June coordinates” to see the June file exactly as it was.` : '') +
+    `<br>Note: some coordinates are genuinely DC / head-office locations, so several drop points stack on one marker.`;
 }
 
 /* ---------------- events ---------------- */
