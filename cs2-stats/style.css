@@ -26,7 +26,13 @@ body {
 }
 
 .site-header,
-main { max-width: 720px; margin: 0 auto; }
+main { max-width: 1120px; margin: 0 auto; }
+
+/* การ์ดทุกใบเว้นระยะเท่ากันด้วย gap ที่คอนเทนเนอร์ ไม่ต้องใส่ margin ทีละใบ */
+main { display: grid; gap: 20px; align-content: start; }
+
+.layout { display: grid; gap: 20px; align-items: start; }
+.col { display: grid; gap: 20px; align-content: start; }
 
 .site-header { margin-bottom: 24px; }
 
@@ -45,7 +51,6 @@ h1 {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 24px;
-  margin-bottom: 20px;
 }
 
 .grid {
@@ -114,7 +119,7 @@ fieldset { border: 0; margin: 0; padding: 0; }
   color: var(--danger);
 }
 
-.actions { display: flex; gap: 12px; margin-top: 22px; }
+.actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 22px; }
 
 .btn {
   padding: 11px 22px;
@@ -130,21 +135,27 @@ fieldset { border: 0; margin: 0; padding: 0; }
 .btn--ghost { background: transparent; color: var(--muted); border-color: var(--line); }
 .btn--ghost:hover { color: var(--text); border-color: var(--muted); }
 
-.preview h2 { margin: 0 0 6px; font-size: 1.05rem; }
-.note { margin: 0 0 14px; color: var(--muted); font-size: 0.85rem; }
+/* --- โหมดแก้ไขแมตช์เดิม --- */
 
-code, pre {
-  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
-  font-size: 0.85rem;
+/* ขอบซ้ายสีส้ม = ตอนนี้ฟอร์มกำลังแก้ของเดิมอยู่ ไม่ใช่เพิ่มใหม่ */
+#match-form.is-editing { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+
+.edit-note {
+  margin: 0;
+  padding: 3px 12px;
+  border: 1px dashed var(--accent);
+  border-radius: 999px;
+  color: var(--accent);
+  font-size: 0.82rem;
+  font-weight: 600;
 }
 
-pre {
-  margin: 0;
-  padding: 14px;
-  background: #0e1319;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  overflow-x: auto;
+/* ระหว่างแก้ไข ปุ่ม "ล้างฟอร์ม" ไม่มีประโยชน์ ใช้ "ยกเลิกการแก้ไข" แทน */
+#match-form.is-editing .btn--reset { display: none; }
+
+code {
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 0.85rem;
 }
 
 /* --- Milestone 2: แถบสถานะ localStorage --- */
@@ -167,7 +178,7 @@ pre {
 .btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .warning {
-  margin: 0 0 20px;
+  margin: 0;
   padding: 12px 16px;
   border: 1px solid var(--danger);
   border-left-width: 4px;
@@ -225,6 +236,10 @@ tbody tr:hover { background: rgba(255, 255, 255, 0.03); }
 .badge--loss { color: var(--loss); }
 .badge--draw { color: var(--draw); }
 
+/* ปุ่มท้ายแถว: จาง ๆ ไว้ก่อน พอชี้ค่อยติดสี จะได้ไม่แย่งสายตาจากตัวเลข */
+.row-actions { white-space: nowrap; text-align: right; }
+
+.row-edit,
 .row-delete {
   padding: 2px 8px;
   background: transparent;
@@ -236,7 +251,12 @@ tbody tr:hover { background: rgba(255, 255, 255, 0.03); }
   cursor: pointer;
 }
 
+.row-edit:hover { color: var(--accent); border-color: var(--accent); }
 .row-delete:hover { color: var(--danger); border-color: var(--danger); }
+
+/* แถวที่กำลังแก้อยู่ ให้เห็นชัดว่าฟอร์มด้านบนกำลังพูดถึงแถวไหน */
+tbody tr.is-editing { background: rgba(240, 165, 0, 0.09); }
+tbody tr.is-editing td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
 
 .empty-state { margin: 0; padding: 8px 0; }
 
@@ -357,6 +377,19 @@ tbody tr:hover { background: rgba(255, 255, 255, 0.03); }
 
 .check input { width: 17px; height: 17px; accent-color: var(--accent); cursor: pointer; }
 .check input:checked + span { color: var(--muted); text-decoration: line-through; }
+
+/* จอกว้างพอ: ฟอร์มอยู่ซ้ายกว้างคงที่ / สรุป-กราฟ-ตาราง-เช็กลิสต์อยู่ขวา
+   minmax(0, 1fr) สำคัญ ไม่งั้นตารางที่กว้างเกินจะดันคอลัมน์ขวาให้บานออก */
+@media (min-width: 980px) {
+  .layout { grid-template-columns: minmax(330px, 380px) minmax(0, 1fr); }
+  .chart-box { height: 300px; }
+}
+
+/* จอสูงพอด้วย: ให้ฟอร์มลอยติดตามตอนเลื่อนดูตารางยาว ๆ
+   (เช็ค min-height ด้วย ไม่งั้นฟอร์มจะสูงเกินจอแล้วโดนตัดท้าย) */
+@media (min-width: 980px) and (min-height: 820px) {
+  #match-form { position: sticky; top: 20px; }
+}
 
 @media (max-width: 560px) {
   .grid { grid-template-columns: 1fr; }

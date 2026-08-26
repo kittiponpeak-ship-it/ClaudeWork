@@ -1,5 +1,5 @@
-// CS2 Match Tracker — Milestone 4–5
-// ขั้นนี้เพิ่ม: กราฟเทรนด์ด้วย Chart.js, ตัวกรองตาม map, สรุป win rate/ค่าเฉลี่ย
+// CS2 Match Tracker — ครบทั้ง 5 ขั้น
+// ไฟล์นี้ดูแล: ฟอร์ม (เพิ่ม/แก้ไข/ลบ), localStorage, ตัวกรอง map, สรุปผล, กราฟเทรนด์, ตาราง
 // (เช็กลิสต์ซ้อมรายสัปดาห์แยกไปอยู่ practice.js)
 
 // ชื่อ key ที่ใช้ใน localStorage — ตั้งเป็นตัวแปรไว้ จะได้ไม่พิมพ์ผิดกระจายทั้งไฟล์
@@ -17,10 +17,14 @@ const METRICS = {
 
 let currentMetric = 'adr';   // ปุ่มที่กำลังเลือกอยู่
 let chart = null;            // เก็บ instance ของ Chart.js ไว้ update ทีหลัง
+let editingId = null;        // null = โหมดเพิ่มแมตช์ใหม่ / ตัวเลข = กำลังแก้แมตช์ไอดีนั้นอยู่
 
 // --- 1) จับ element ที่ต้องใช้ ---------------------------------------------
 const form = document.getElementById('match-form');
-const dateInput = document.getElementById('date');
+const formTitle = document.getElementById('form-title');
+const editNote = document.getElementById('edit-note');
+const submitBtn = document.getElementById('submit-btn');
+const cancelEditBtn = document.getElementById('cancel-edit');
 const tbody = document.getElementById('match-tbody');
 const tableWrap = document.querySelector('.table-wrap');
 const emptyState = document.getElementById('empty-state');
@@ -34,10 +38,20 @@ const chartMessage = document.getElementById('chart-message');
 const clearAllBtn = document.getElementById('clear-all');
 const storageWarning = document.getElementById('storage-warning');
 
+// ช่องกรอกทั้งหมดรวมไว้ที่เดียว จะได้วนใช้ตอนเติมค่า (แก้ไข) และล้างค่า
+const fields = {
+  date: document.getElementById('date'),
+  map: document.getElementById('map'),
+  kills: document.getElementById('kills'),
+  deaths: document.getElementById('deaths'),
+  adr: document.getElementById('adr'),
+  hs: document.getElementById('hs'),
+};
+
 // ตั้งค่าเริ่มต้นเป็น "วันนี้" และห้ามเลือกวันในอนาคต
 const today = toDateString(new Date());
-dateInput.value = today;
-dateInput.max = today;
+fields.date.value = today;
+fields.date.max = today;
 
 // --- 2) ส่วนที่คุยกับ localStorage ------------------------------------------
 // localStorage เก็บได้แต่ "ข้อความ" เท่านั้น
@@ -98,7 +112,7 @@ const savedOnLoad = loadMatches();
 console.log(`โหลดจาก localStorage ได้ ${savedOnLoad.length} แมตช์:`, savedOnLoad);
 render(savedOnLoad);
 
-// --- 4) ตอน submit -----------------------------------------------------------
+// --- 4) ตอน submit (ใช้ร่วมกันทั้งเพิ่มใหม่และแก้ของเดิม) ---------------------
 form.addEventListener('submit', (event) => {
   // กันไม่ให้เบราว์เซอร์ reload หน้า (พฤติกรรมปกติของ form)
   event.preventDefault();
@@ -128,11 +142,8 @@ form.addEventListener('submit', (event) => {
   const kills = Number(raw.kills);
   const deaths = Number(raw.deaths);
 
-  // อ่านของเก่าออกมาก่อน แล้วค่อยต่อท้าย
-  const matches = loadMatches();
-
-  const match = {
-    id: makeId(matches),
+  // ค่าที่กรอกมา (ยังไม่มี id/เวลา เพราะขึ้นกับว่าเพิ่มใหม่หรือแก้ของเดิม)
+  const values = {
     date: raw.date,              // 'YYYY-MM-DD'
     map: raw.map,
     kills,
@@ -141,26 +152,51 @@ form.addEventListener('submit', (event) => {
     adr: Number(raw.adr),
     hs: Number(raw.hs),
     result: raw.result,          // 'win' | 'loss' | 'draw'
-    savedAt: new Date().toISOString(), // เวลาที่กดบันทึก เผื่อใช้เรียงลำดับทีหลัง
   };
 
-  matches.push(match);
-  const ok = saveMatches(matches);
+  // อ่านของเก่าออกมาก่อนเสมอ
+  const matches = loadMatches();
+  let index = editingId === null ? -1 : matches.findIndex((match) => match.id === editingId);
 
-  console.log(ok ? `บันทึกแล้ว (รวม ${matches.length} แมตช์):` : 'บันทึกไม่สำเร็จ:', match);
+  // กันเคสหายาก: แมตช์ที่กำลังแก้ถูกลบไปแล้ว (เช่นลบจากอีกแท็บ) → เซฟเป็นแมตช์ใหม่แทน
+  if (editingId !== null && index === -1) {
+    console.warn('ไม่เจอแมตช์ที่กำลังแก้ไข (อาจถูกลบไปแล้ว) — บันทึกเป็นแมตช์ใหม่แทน');
+  }
+
+  let saved;
+  if (index >= 0) {
+    // แก้ของเดิม: คงไอดีกับเวลาที่บันทึกครั้งแรกไว้ แล้วทับด้วยค่าใหม่ + จดเวลาที่แก้
+    saved = { ...matches[index], ...values, editedAt: new Date().toISOString() };
+    matches[index] = saved;
+  } else {
+    saved = { id: makeId(matches), ...values, savedAt: new Date().toISOString() };
+    matches.push(saved);
+  }
+
+  const ok = saveMatches(matches);
+  const action = index >= 0 ? 'แก้ไขแล้ว' : 'บันทึกแล้ว';
+  console.log(ok ? `${action} (รวม ${matches.length} แมตช์):` : 'บันทึกไม่สำเร็จ:', saved);
   console.table(matches);
 
+  exitEdit({ redraw: false });   // กลับไปโหมดเพิ่มใหม่ (ถ้าเพิ่งแก้อยู่) แล้วค่อยวาดทีเดียว
   render(matches);
 
   // เคลียร์เฉพาะช่องสถิติ (คงวันที่ไว้) เพื่อกรอกแมตช์ถัดไปต่อได้เลย
   clearStatFields();
 });
 
+// พิมพ์แก้ช่องไหน ให้ข้อความ error ของช่องนั้นหายไปเลย ไม่ต้องรอกดบันทึกใหม่
+form.addEventListener('input', (event) => {
+  const slot = form.querySelector(`[data-error-for="${event.target.name}"]`);
+  if (slot) slot.textContent = '';
+});
+
 // ล้าง error เวลากดปุ่ม "ล้างฟอร์ม" (ปุ่มนี้ล้างแค่ช่องกรอก ไม่ยุ่งกับข้อมูลที่เซฟไว้)
 form.addEventListener('reset', () => {
   clearErrors();
+  exitEdit();
   // ต้องรอให้ reset ทำงานเสร็จก่อน ค่อยเซ็ตวันที่กลับเป็นวันนี้
-  setTimeout(() => { dateInput.value = today; }, 0);
+  setTimeout(() => { fields.date.value = today; }, 0);
 });
 
 // --- 5) ปุ่มล้างข้อมูลทั้งหมด --------------------------------------------------
@@ -172,27 +208,44 @@ clearAllBtn.addEventListener('click', () => {
 
   localStorage.removeItem(STORAGE_KEY);
   console.log('ล้างข้อมูลใน localStorage แล้ว');
+  exitEdit({ redraw: false });   // ที่กำลังแก้อยู่ก็ถูกลบไปด้วย
   render([]);
 });
 
-// --- 6) ปุ่มลบรายแถว --------------------------------------------------------
+// --- 6) ปุ่มแก้ไข/ลบรายแถว ---------------------------------------------------
 // ผูก listener ไว้ที่ <tbody> ตัวเดียว แทนที่จะผูกทีละปุ่ม (เรียกว่า event delegation)
 // ข้อดี: แถวที่วาดใหม่ทีหลังก็กดได้เลย ไม่ต้องผูก listener ใหม่ทุกครั้ง
 tbody.addEventListener('click', (event) => {
-  const button = event.target.closest('.row-delete');
+  const button = event.target.closest('button[data-id]');
   if (!button) return;                       // คลิกโดนที่อื่นในตาราง ไม่ต้องทำอะไร
 
-  const id = Number(button.dataset.id);      // data-id="..." อ่านได้จาก dataset
+  const id = Number(button.dataset.id);      // data-id="..." อ่านได้จาก dataset (เป็น string ต้องแปลง)
   const matches = loadMatches();
   const target = matches.find((match) => match.id === id);
   if (!target) return;
 
+  // ปุ่มแก้ไข: ยกข้อมูลแถวนั้นกลับขึ้นไปในฟอร์ม
+  if (button.classList.contains('row-edit')) {
+    startEdit(target);
+    return;
+  }
+
+  // ปุ่มลบ
   if (!confirm(`ลบแมตช์ ${target.map} วันที่ ${formatDate(target.date)}?`)) return;
 
   const remaining = matches.filter((match) => match.id !== id);
   saveMatches(remaining);
+  if (editingId === id) exitEdit({ redraw: false });   // ลบแมตช์ที่กำลังแก้อยู่ → ออกจากโหมดแก้ไข
   render(remaining);
   console.log(`ลบแล้ว (เหลือ ${remaining.length} แมตช์):`, target);
+});
+
+// ปุ่มยกเลิกการแก้ไข: ทิ้งที่พิมพ์ค้างไว้ กลับไปโหมดเพิ่มแมตช์ใหม่
+cancelEditBtn.addEventListener('click', () => {
+  console.log('ยกเลิกการแก้ไข');
+  exitEdit();
+  clearErrors();
+  clearStatFields();
 });
 
 // --- 7) ตัวกรอง map และปุ่มเลือกค่าที่จะพล็อต -------------------------------
@@ -212,6 +265,50 @@ metricToggle.addEventListener('click', (event) => {
   refresh();
 });
 
+// --- 8) โหมดแก้ไข -------------------------------------------------------------
+
+// เอาข้อมูลแมตช์เดิมใส่กลับเข้าฟอร์ม แล้วสลับปุ่มเป็น "บันทึกการแก้ไข"
+function startEdit(match) {
+  editingId = match.id;
+  clearErrors();
+
+  fields.date.value = match.date;
+  fields.map.value = match.map;
+  fields.kills.value = match.kills;
+  fields.deaths.value = match.deaths;
+  fields.adr.value = match.adr;
+  fields.hs.value = match.hs;
+
+  const radio = form.querySelector(`input[name="result"][value="${match.result}"]`);
+  if (radio) radio.checked = true;
+
+  form.classList.add('is-editing');
+  formTitle.textContent = 'แก้ไขแมตช์';
+  editNote.textContent = `${match.map} · ${formatDate(match.date)}`;
+  editNote.hidden = false;
+  submitBtn.textContent = 'บันทึกการแก้ไข';
+  cancelEditBtn.hidden = false;
+
+  refresh();                                   // วาดตารางใหม่ ให้แถวที่กำลังแก้ไฮไลต์ขึ้นมา
+  form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  fields.map.focus({ preventScroll: true });
+  console.log('กำลังแก้ไขแมตช์:', match);
+}
+
+// กลับสู่โหมดเพิ่มแมตช์ใหม่ (redraw: false ใช้ตอนที่เดี๋ยวจะ render() เองอยู่แล้ว)
+function exitEdit({ redraw = true } = {}) {
+  if (editingId === null) return;
+
+  editingId = null;
+  form.classList.remove('is-editing');
+  formTitle.textContent = 'บันทึกแมตช์ใหม่';
+  editNote.hidden = true;
+  submitBtn.textContent = 'บันทึกแมตช์';
+  cancelEditBtn.hidden = true;
+
+  if (redraw) refresh();
+}
+
 // --- ฟังก์ชันย่อย -------------------------------------------------------------
 
 // ตรวจข้อมูล คืน object แบบ { ชื่อช่อง: 'ข้อความ error' }
@@ -227,25 +324,32 @@ function validate(raw) {
   if (!raw.map) errors.map = 'เลือก map ก่อน';
   if (!raw.result) errors.result = 'เลือกผลการแข่ง';
 
-  checkNumber(errors, 'kills', raw.kills, 0, 100, 'Kills');
-  checkNumber(errors, 'deaths', raw.deaths, 0, 100, 'Deaths');
-  checkNumber(errors, 'adr', raw.adr, 0, 300, 'ADR');
-  checkNumber(errors, 'hs', raw.hs, 0, 100, 'HS%');
+  checkNumber(errors, 'kills', raw.kills, { min: 0, max: 100, label: 'Kills', integer: true });
+  checkNumber(errors, 'deaths', raw.deaths, { min: 0, max: 100, label: 'Deaths', integer: true });
+  checkNumber(errors, 'adr', raw.adr, { min: 0, max: 300, label: 'ADR' });
+  checkNumber(errors, 'hs', raw.hs, { min: 0, max: 100, label: 'HS%' });
 
   return errors;
 }
 
-// ตัวช่วยเช็คช่องตัวเลข: ต้องกรอก, ต้องเป็นตัวเลข, ต้องอยู่ในช่วงที่กำหนด
-function checkNumber(errors, key, value, min, max, label) {
+// ตัวช่วยเช็คช่องตัวเลข: ต้องกรอก, ต้องเป็นตัวเลข, ห้ามติดลบ/เกินช่วง (และบางช่องต้องเป็นจำนวนเต็ม)
+function checkNumber(errors, key, value, { min, max, label, integer = false }) {
+  // ช่อง type="number" ถ้าพิมพ์อะไรที่ไม่ใช่ตัวเลข เบราว์เซอร์จะส่งค่าว่างมาให้ เลยรวมเคสเดียวกันได้
   if (value === null || value.trim() === '') {
     errors[key] = `กรอก ${label} ด้วย`;
     return;
   }
+
   const num = Number(value);
   if (!Number.isFinite(num)) {
     errors[key] = `${label} ต้องเป็นตัวเลข`;
-  } else if (num < min || num > max) {
-    errors[key] = `${label} ต้องอยู่ระหว่าง ${min}–${max}`;
+  } else if (num < min) {
+    // เคสที่เจอบ่อยสุดคือติดลบ เลยเขียนข้อความให้ตรง ๆ ไปเลย
+    errors[key] = min === 0 ? `${label} ติดลบไม่ได้` : `${label} ต้องไม่ต่ำกว่า ${min}`;
+  } else if (num > max) {
+    errors[key] = `${label} ต้องไม่เกิน ${max}`;
+  } else if (integer && !Number.isInteger(num)) {
+    errors[key] = `${label} ต้องเป็นจำนวนเต็ม`;
   }
 }
 
@@ -267,13 +371,13 @@ function clearErrors() {
 
 // ล้างช่องสถิติทั้งหมด แต่ไม่แตะช่องวันที่
 function clearStatFields() {
-  ['map', 'kills', 'deaths', 'adr', 'hs'].forEach((id) => {
-    document.getElementById(id).value = '';
+  ['map', 'kills', 'deaths', 'adr', 'hs'].forEach((key) => {
+    fields[key].value = '';
   });
   form.querySelectorAll('input[name="result"]').forEach((radio) => {
     radio.checked = false;
   });
-  document.getElementById('map').focus();
+  fields.map.focus({ preventScroll: true });
 }
 
 // K/D: ถ้าตายศูนย์ครั้ง หารไม่ได้ ให้ใช้จำนวน kills ไปเลย
@@ -290,7 +394,7 @@ function toDateString(dateObj) {
   return `${y}-${m}-${d}`;
 }
 
-// จุดเดียวที่วาดหน้าจอใหม่ — เรียกทุกครั้งที่ข้อมูลเปลี่ยน (โหลด/เพิ่ม/ลบ/ล้าง/เปลี่ยนตัวกรอง)
+// จุดเดียวที่วาดหน้าจอใหม่ — เรียกทุกครั้งที่ข้อมูลเปลี่ยน (โหลด/เพิ่ม/แก้/ลบ/ล้าง/เปลี่ยนตัวกรอง)
 function render(allMatches) {
   matchCountEl.textContent = allMatches.length;
   clearAllBtn.disabled = allMatches.length === 0;
@@ -307,7 +411,7 @@ function render(allMatches) {
   renderTable(matches);
 }
 
-// อ่านข้อมูลใหม่จาก localStorage แล้ววาดใหม่ (ใช้ตอนเปลี่ยนตัวกรอง/เปลี่ยนกราฟ)
+// อ่านข้อมูลใหม่จาก localStorage แล้ววาดใหม่ (ใช้ตอนเปลี่ยนตัวกรอง/เปลี่ยนกราฟ/เข้า-ออกโหมดแก้ไข)
 function refresh() {
   render(loadMatches());
 }
@@ -322,6 +426,12 @@ function renderFilterOptions(allMatches) {
 
   // ถ้า map ที่กรองอยู่ถูกลบไปหมดแล้ว ให้เด้งกลับเป็น "ทุก map"
   mapFilter.value = maps.includes(selected) ? selected : 'all';
+  mapFilter.disabled = maps.length === 0;      // ยังไม่มีข้อมูลก็ไม่มีอะไรให้กรอง
+}
+
+// ข้อความตอนไม่มีอะไรให้แสดง — แยกกรณี "ยังไม่เคยกรอกเลย" กับ "กรองแล้วไม่เจอ"
+function emptyText(whenNoData) {
+  return mapFilter.value === 'all' ? whenNoData : `ยังไม่มีแมตช์ของ ${mapFilter.value}`;
 }
 
 // การ์ดสรุป: จำนวนแมตช์, win rate, ค่าเฉลี่ยต่าง ๆ
@@ -329,7 +439,7 @@ function renderStats(matches) {
   const total = matches.length;
 
   if (total === 0) {
-    statsEl.replaceChildren(muted('ยังไม่มีข้อมูลสำหรับตัวกรองนี้'));
+    statsEl.replaceChildren(muted(emptyText('ยังไม่มีข้อมูล — บันทึกแมตช์แรกแล้วสรุปจะขึ้นตรงนี้')));
     return;
   }
 
@@ -356,7 +466,7 @@ function renderChart(matches) {
   }
 
   if (matches.length === 0) {
-    showChartMessage('ยังไม่มีข้อมูลจะพล็อต');
+    showChartMessage(emptyText('ยังไม่มีข้อมูลจะพล็อต — บันทึกสัก 2–3 แมตช์แล้วเส้นเทรนด์จะขึ้นตรงนี้'));
     return;
   }
 
@@ -424,9 +534,7 @@ function renderTable(matches) {
   const isEmpty = matches.length === 0;
   tableWrap.hidden = isEmpty;
   emptyState.hidden = !isEmpty;
-  emptyState.textContent = mapFilter.value === 'all'
-    ? 'ยังไม่มีข้อมูล — กรอกแมตช์แรกด้านบนได้เลย'
-    : `ยังไม่มีแมตช์ของ ${mapFilter.value}`;
+  emptyState.textContent = emptyText('ยังไม่มีข้อมูล — กรอกแมตช์แรกด้านบนได้เลย');
 
   // sort() แก้ array ตัวเดิม เลยก็อปด้วย [...matches] ก่อน จะได้ไม่ไปยุ่งกับลำดับที่เซฟไว้
   const sorted = [...matches].sort(byNewestFirst);
@@ -475,6 +583,7 @@ function byNewestFirst(a, b) {
 // สร้าง <tr> ของแมตช์หนึ่งแถว
 function buildRow(match) {
   const row = document.createElement('tr');
+  if (match.id === editingId) row.className = 'is-editing';   // ไฮไลต์แถวที่กำลังแก้อยู่
 
   row.appendChild(cell(formatDate(match.date)));
   row.appendChild(cell(match.map));
@@ -498,16 +607,26 @@ function buildRow(match) {
   row.appendChild(resultCell);
 
   const actionCell = document.createElement('td');
-  const deleteBtn = document.createElement('button');
-  deleteBtn.type = 'button';
-  deleteBtn.className = 'row-delete';
-  deleteBtn.dataset.id = match.id;              // ฝังไอดีไว้กับปุ่ม ไว้หาตอนกดลบ
-  deleteBtn.textContent = '✕';
-  deleteBtn.title = 'ลบแมตช์นี้';
-  actionCell.appendChild(deleteBtn);
+  actionCell.className = 'row-actions';
+  actionCell.append(
+    rowButton('row-edit', '✎', `แก้ไขแมตช์ ${match.map} วันที่ ${formatDate(match.date)}`, match.id),
+    rowButton('row-delete', '✕', `ลบแมตช์ ${match.map} วันที่ ${formatDate(match.date)}`, match.id),
+  );
   row.appendChild(actionCell);
 
   return row;
+}
+
+// ปุ่มเล็ก ๆ ท้ายแถว — ฝังไอดีไว้ใน data-id ให้ตัวจัดการคลิกที่ <tbody> อ่านได้
+function rowButton(className, symbol, label, id) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = className;
+  button.dataset.id = id;
+  button.textContent = symbol;
+  button.title = label;
+  button.setAttribute('aria-label', label);     // ปุ่มเป็นสัญลักษณ์ ต้องมีคำอธิบายให้ screen reader
+  return button;
 }
 
 // ตัวช่วยสร้าง <td> — ใช้ textContent (ไม่ใช่ innerHTML) ข้อความแปลก ๆ จะได้ไม่กลายเป็น HTML

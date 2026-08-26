@@ -9,7 +9,7 @@
 <body>
   <header class="site-header">
     <h1>CS2 Match Tracker</h1>
-    <p class="subtitle">กรอกสถิติหลังจบแต่ละแมตช์ — Milestone 4–5: กราฟ, ตัวกรอง, สรุปผล และตารางซ้อม</p>
+    <p class="subtitle">กรอกสถิติหลังจบแต่ละแมตช์ — บันทึก แก้ไข ดูเทรนด์ และเช็กลิสต์ซ้อมรายสัปดาห์</p>
   </header>
 
   <main>
@@ -24,151 +24,166 @@
 
     <p id="storage-warning" class="warning" hidden></p>
 
-    <!-- ฟอร์มหลัก: novalidate ปิด popup ของเบราว์เซอร์ เพื่อให้เราคุมข้อความ error เอง -->
-    <form id="match-form" class="card" novalidate>
-      <div class="grid">
+    <!-- จอกว้าง: ฟอร์มอยู่ซ้าย ส่วนที่เหลืออยู่ขวา / จอแคบ: เรียงลงมาตามลำดับเดิม -->
+    <div class="layout">
 
-        <div class="field">
-          <label for="date">วันที่เล่น</label>
-          <input type="date" id="date" name="date" required>
-          <p class="error" data-error-for="date"></p>
+      <!-- ฟอร์มหลัก: novalidate ปิด popup ของเบราว์เซอร์ เพื่อให้เราคุมข้อความ error เอง -->
+      <form id="match-form" class="card" novalidate>
+        <div class="section-head">
+          <h2 id="form-title">บันทึกแมตช์ใหม่</h2>
+          <p id="edit-note" class="edit-note" hidden></p>
         </div>
 
-        <div class="field">
-          <label for="map">Map</label>
-          <select id="map" name="map" required>
-            <option value="">— เลือก map —</option>
-            <option value="Ancient">Ancient</option>
-            <option value="Anubis">Anubis</option>
-            <option value="Cache">Cache</option>
-            <option value="Dust II">Dust II</option>
-            <option value="Inferno">Inferno</option>
-            <option value="Mirage">Mirage</option>
-            <option value="Nuke">Nuke</option>
-            <option value="Overpass">Overpass</option>
-            <option value="Train">Train</option>
-            <option value="Vertigo">Vertigo</option>
-          </select>
-          <p class="error" data-error-for="map"></p>
+        <div class="grid">
+
+          <div class="field">
+            <label for="date">วันที่เล่น</label>
+            <input type="date" id="date" name="date" required>
+            <p class="error" data-error-for="date"></p>
+          </div>
+
+          <div class="field">
+            <label for="map">Map</label>
+            <select id="map" name="map" required>
+              <option value="">— เลือก map —</option>
+              <option value="Ancient">Ancient</option>
+              <option value="Anubis">Anubis</option>
+              <option value="Cache">Cache</option>
+              <option value="Dust II">Dust II</option>
+              <option value="Inferno">Inferno</option>
+              <option value="Mirage">Mirage</option>
+              <option value="Nuke">Nuke</option>
+              <option value="Overpass">Overpass</option>
+              <option value="Train">Train</option>
+              <option value="Vertigo">Vertigo</option>
+            </select>
+            <p class="error" data-error-for="map"></p>
+          </div>
+
+          <div class="field">
+            <label for="kills">Kills</label>
+            <input type="number" id="kills" name="kills" min="0" max="100" step="1"
+                   inputmode="numeric" placeholder="เช่น 21" required>
+            <p class="error" data-error-for="kills"></p>
+          </div>
+
+          <div class="field">
+            <label for="deaths">Deaths</label>
+            <input type="number" id="deaths" name="deaths" min="0" max="100" step="1"
+                   inputmode="numeric" placeholder="เช่น 17" required>
+            <p class="error" data-error-for="deaths"></p>
+          </div>
+
+          <div class="field">
+            <label for="adr">ADR <span class="hint">(Average Damage per Round)</span></label>
+            <input type="number" id="adr" name="adr" min="0" max="300" step="0.1"
+                   inputmode="decimal" placeholder="เช่น 84.6" required>
+            <p class="error" data-error-for="adr"></p>
+          </div>
+
+          <div class="field">
+            <label for="hs">HS% <span class="hint">(0–100)</span></label>
+            <input type="number" id="hs" name="hs" min="0" max="100" step="0.1"
+                   inputmode="decimal" placeholder="เช่น 45.5" required>
+            <p class="error" data-error-for="hs"></p>
+          </div>
+
+          <fieldset class="field field--full">
+            <legend>ผลการแข่ง</legend>
+            <div class="radio-row">
+              <label class="radio radio--win">
+                <input type="radio" name="result" value="win" required>
+                <span>ชนะ</span>
+              </label>
+              <label class="radio radio--loss">
+                <input type="radio" name="result" value="loss">
+                <span>แพ้</span>
+              </label>
+              <label class="radio radio--draw">
+                <input type="radio" name="result" value="draw">
+                <span>เสมอ</span>
+              </label>
+            </div>
+            <p class="error" data-error-for="result"></p>
+          </fieldset>
+
         </div>
 
-        <div class="field">
-          <label for="kills">Kills</label>
-          <input type="number" id="kills" name="kills" min="0" max="100" step="1"
-                 inputmode="numeric" placeholder="เช่น 21" required>
-          <p class="error" data-error-for="kills"></p>
+        <div class="actions">
+          <button type="submit" id="submit-btn" class="btn btn--primary">บันทึกแมตช์</button>
+          <button type="reset" class="btn btn--ghost btn--reset">ล้างฟอร์ม</button>
+          <!-- โผล่มาเฉพาะตอนกำลังแก้ไขแมตช์เดิม -->
+          <button type="button" id="cancel-edit" class="btn btn--ghost" hidden>ยกเลิกการแก้ไข</button>
         </div>
+      </form>
 
-        <div class="field">
-          <label for="deaths">Deaths</label>
-          <input type="number" id="deaths" name="deaths" min="0" max="100" step="1"
-                 inputmode="numeric" placeholder="เช่น 17" required>
-          <p class="error" data-error-for="deaths"></p>
-        </div>
+      <div class="col">
 
-        <div class="field">
-          <label for="adr">ADR <span class="hint">(Average Damage per Round)</span></label>
-          <input type="number" id="adr" name="adr" min="0" max="300" step="0.1"
-                 inputmode="decimal" placeholder="เช่น 84.6" required>
-          <p class="error" data-error-for="adr"></p>
-        </div>
-
-        <div class="field">
-          <label for="hs">HS% <span class="hint">(0–100)</span></label>
-          <input type="number" id="hs" name="hs" min="0" max="100" step="0.1"
-                 inputmode="decimal" placeholder="เช่น 45.5" required>
-          <p class="error" data-error-for="hs"></p>
-        </div>
-
-        <fieldset class="field field--full">
-          <legend>ผลการแข่ง</legend>
-          <div class="radio-row">
-            <label class="radio radio--win">
-              <input type="radio" name="result" value="win" required>
-              <span>ชนะ</span>
-            </label>
-            <label class="radio radio--loss">
-              <input type="radio" name="result" value="loss">
-              <span>แพ้</span>
-            </label>
-            <label class="radio radio--draw">
-              <input type="radio" name="result" value="draw">
-              <span>เสมอ</span>
+        <!-- ตัวกรองตาม map + สรุปภาพรวม -->
+        <section class="card">
+          <div class="section-head">
+            <h2>ภาพรวม</h2>
+            <label class="filter">
+              Map:
+              <select id="map-filter">
+                <option value="all">ทุก map</option>
+              </select>
             </label>
           </div>
-          <p class="error" data-error-for="result"></p>
-        </fieldset>
+          <div class="stats" id="stats"></div>
+        </section>
+
+        <!-- กราฟเทรนด์ด้วย Chart.js -->
+        <section class="card">
+          <div class="section-head">
+            <h2>กราฟเทรนด์ <span class="hint">(เก่า → ใหม่)</span></h2>
+            <div class="metric-toggle" id="metric-toggle">
+              <button type="button" class="metric is-active" data-metric="adr">ADR</button>
+              <button type="button" class="metric" data-metric="kd">K/D</button>
+              <button type="button" class="metric" data-metric="hs">HS%</button>
+            </div>
+          </div>
+          <div class="chart-box" id="chart-box"><canvas id="trend-chart"></canvas></div>
+          <p id="chart-message" class="muted" hidden></p>
+        </section>
+
+        <!-- ตารางประวัติ: วาดใหม่ทุกครั้งที่ข้อมูลเปลี่ยน -->
+        <section class="card">
+          <h2>ประวัติแมตช์ <span class="hint">(ล่าสุดอยู่บนสุด)</span></h2>
+
+          <div class="table-wrap">
+            <table id="match-table">
+              <thead>
+                <tr>
+                  <th>วันที่</th>
+                  <th>Map</th>
+                  <th class="num">K/D</th>
+                  <th class="num">ADR</th>
+                  <th class="num">HS%</th>
+                  <th>ผล</th>
+                  <th><span class="sr-only">แก้ไข / ลบ</span></th>
+                </tr>
+              </thead>
+              <tbody id="match-tbody"></tbody>
+            </table>
+          </div>
+
+          <p id="empty-state" class="muted empty-state">ยังไม่มีข้อมูล — กรอกแมตช์แรกด้านบนได้เลย</p>
+        </section>
+
+        <!-- เช็กลิสต์ซ้อมรายสัปดาห์ (เก็บแยกอีก key หนึ่ง) -->
+        <section class="card">
+          <div class="section-head">
+            <h2>ตารางซ้อมสัปดาห์นี้ <span class="hint" id="week-range"></span></h2>
+            <span class="progress-label"><strong id="practice-done">0</strong>/<span id="practice-total">0</span></span>
+          </div>
+          <div class="progress"><div class="progress-fill" id="practice-bar"></div></div>
+          <ul class="checklist" id="practice-list"></ul>
+          <p class="muted">ติ๊กแล้วเซฟทันที และรีเซ็ตให้อัตโนมัติทุกวันจันทร์</p>
+        </section>
 
       </div>
-
-      <div class="actions">
-        <button type="submit" class="btn btn--primary">บันทึกแมตช์</button>
-        <button type="reset" class="btn btn--ghost">ล้างฟอร์ม</button>
-      </div>
-    </form>
-
-    <!-- Milestone 5: ตัวกรองตาม map + สรุปภาพรวม -->
-    <section class="card">
-      <div class="section-head">
-        <h2>ภาพรวม</h2>
-        <label class="filter">
-          Map:
-          <select id="map-filter">
-            <option value="all">ทุก map</option>
-          </select>
-        </label>
-      </div>
-      <div class="stats" id="stats"></div>
-    </section>
-
-    <!-- Milestone 4: กราฟเทรนด์ด้วย Chart.js -->
-    <section class="card">
-      <div class="section-head">
-        <h2>กราฟเทรนด์ <span class="hint">(เก่า → ใหม่)</span></h2>
-        <div class="metric-toggle" id="metric-toggle">
-          <button type="button" class="metric is-active" data-metric="adr">ADR</button>
-          <button type="button" class="metric" data-metric="kd">K/D</button>
-          <button type="button" class="metric" data-metric="hs">HS%</button>
-        </div>
-      </div>
-      <div class="chart-box" id="chart-box"><canvas id="trend-chart"></canvas></div>
-      <p id="chart-message" class="muted" hidden></p>
-    </section>
-
-    <!-- ตารางประวัติ: วาดใหม่ทุกครั้งที่ข้อมูลเปลี่ยน -->
-    <section class="card">
-      <h2>ประวัติแมตช์ <span class="hint">(ล่าสุดอยู่บนสุด)</span></h2>
-
-      <div class="table-wrap">
-        <table id="match-table">
-          <thead>
-            <tr>
-              <th>วันที่</th>
-              <th>Map</th>
-              <th class="num">K/D</th>
-              <th class="num">ADR</th>
-              <th class="num">HS%</th>
-              <th>ผล</th>
-              <th><span class="sr-only">ลบ</span></th>
-            </tr>
-          </thead>
-          <tbody id="match-tbody"></tbody>
-        </table>
-      </div>
-
-      <p id="empty-state" class="muted empty-state">ยังไม่มีข้อมูล — กรอกแมตช์แรกด้านบนได้เลย</p>
-    </section>
-
-    <!-- Milestone 5: เช็กลิสต์ซ้อมรายสัปดาห์ (เก็บแยกอีก key หนึ่ง) -->
-    <section class="card">
-      <div class="section-head">
-        <h2>ตารางซ้อมสัปดาห์นี้ <span class="hint" id="week-range"></span></h2>
-        <span class="progress-label"><strong id="practice-done">0</strong>/<span id="practice-total">0</span></span>
-      </div>
-      <div class="progress"><div class="progress-fill" id="practice-bar"></div></div>
-      <ul class="checklist" id="practice-list"></ul>
-      <p class="muted">ติ๊กแล้วเซฟทันที และรีเซ็ตให้อัตโนมัติทุกวันจันทร์</p>
-    </section>
+    </div>
   </main>
 
   <!-- Chart.js ผ่าน CDN บรรทัดเดียว ต้องโหลดก่อน app.js -->
