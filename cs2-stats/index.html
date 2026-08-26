@@ -9,7 +9,7 @@
 <body>
   <header class="site-header">
     <h1>CS2 Match Tracker</h1>
-    <p class="subtitle">กรอกสถิติหลังจบแต่ละแมตช์ — Milestone 3: ตารางประวัติแมตช์</p>
+    <p class="subtitle">กรอกสถิติหลังจบแต่ละแมตช์ — Milestone 4–5: กราฟ, ตัวกรอง, สรุปผล และตารางซ้อม</p>
   </header>
 
   <main>
@@ -107,6 +107,34 @@
       </div>
     </form>
 
+    <!-- Milestone 5: ตัวกรองตาม map + สรุปภาพรวม -->
+    <section class="card">
+      <div class="section-head">
+        <h2>ภาพรวม</h2>
+        <label class="filter">
+          Map:
+          <select id="map-filter">
+            <option value="all">ทุก map</option>
+          </select>
+        </label>
+      </div>
+      <div class="stats" id="stats"></div>
+    </section>
+
+    <!-- Milestone 4: กราฟเทรนด์ด้วย Chart.js -->
+    <section class="card">
+      <div class="section-head">
+        <h2>กราฟเทรนด์ <span class="hint">(เก่า → ใหม่)</span></h2>
+        <div class="metric-toggle" id="metric-toggle">
+          <button type="button" class="metric is-active" data-metric="adr">ADR</button>
+          <button type="button" class="metric" data-metric="kd">K/D</button>
+          <button type="button" class="metric" data-metric="hs">HS%</button>
+        </div>
+      </div>
+      <div class="chart-box" id="chart-box"><canvas id="trend-chart"></canvas></div>
+      <p id="chart-message" class="muted" hidden></p>
+    </section>
+
     <!-- ตารางประวัติ: วาดใหม่ทุกครั้งที่ข้อมูลเปลี่ยน -->
     <section class="card">
       <h2>ประวัติแมตช์ <span class="hint">(ล่าสุดอยู่บนสุด)</span></h2>
@@ -130,8 +158,22 @@
 
       <p id="empty-state" class="muted empty-state">ยังไม่มีข้อมูล — กรอกแมตช์แรกด้านบนได้เลย</p>
     </section>
+
+    <!-- Milestone 5: เช็กลิสต์ซ้อมรายสัปดาห์ (เก็บแยกอีก key หนึ่ง) -->
+    <section class="card">
+      <div class="section-head">
+        <h2>ตารางซ้อมสัปดาห์นี้ <span class="hint" id="week-range"></span></h2>
+        <span class="progress-label"><strong id="practice-done">0</strong>/<span id="practice-total">0</span></span>
+      </div>
+      <div class="progress"><div class="progress-fill" id="practice-bar"></div></div>
+      <ul class="checklist" id="practice-list"></ul>
+      <p class="muted">ติ๊กแล้วเซฟทันที และรีเซ็ตให้อัตโนมัติทุกวันจันทร์</p>
+    </section>
   </main>
 
+  <!-- Chart.js ผ่าน CDN บรรทัดเดียว ต้องโหลดก่อน app.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="app.js"></script>
+  <script src="practice.js"></script>
 </body>
 </html>

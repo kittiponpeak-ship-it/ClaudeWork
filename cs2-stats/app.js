@@ -1,11 +1,22 @@
-// CS2 Match Tracker — Milestone 3
-// ขั้นนี้เพิ่ม: เอาข้อมูลใน localStorage มาวาดเป็นตาราง เรียงล่าสุดขึ้นก่อน + ลบทีละแถว
+// CS2 Match Tracker — Milestone 4–5
+// ขั้นนี้เพิ่ม: กราฟเทรนด์ด้วย Chart.js, ตัวกรองตาม map, สรุป win rate/ค่าเฉลี่ย
+// (เช็กลิสต์ซ้อมรายสัปดาห์แยกไปอยู่ practice.js)
 
 // ชื่อ key ที่ใช้ใน localStorage — ตั้งเป็นตัวแปรไว้ จะได้ไม่พิมพ์ผิดกระจายทั้งไฟล์
 const STORAGE_KEY = 'cs2-matches';
 
 // ข้อความไทยของผลการแข่ง — ต้องอยู่บนสุด เพราะ render() ตอนหน้าโหลดเรียกใช้ก่อน
 const RESULT_TEXT = { win: 'ชนะ', loss: 'แพ้', draw: 'เสมอ' };
+
+// ค่าที่พล็อตได้ในกราฟ — เพิ่มอันใหม่ก็แค่เติมใน object นี้กับปุ่มใน HTML
+const METRICS = {
+  adr: { label: 'ADR', color: '#f0a500', pick: (match) => Number(match.adr) },
+  kd: { label: 'K/D', color: '#4ade80', pick: (match) => Number(match.kd) },
+  hs: { label: 'HS%', color: '#60a5fa', pick: (match) => Number(match.hs) },
+};
+
+let currentMetric = 'adr';   // ปุ่มที่กำลังเลือกอยู่
+let chart = null;            // เก็บ instance ของ Chart.js ไว้ update ทีหลัง
 
 // --- 1) จับ element ที่ต้องใช้ ---------------------------------------------
 const form = document.getElementById('match-form');
@@ -14,6 +25,12 @@ const tbody = document.getElementById('match-tbody');
 const tableWrap = document.querySelector('.table-wrap');
 const emptyState = document.getElementById('empty-state');
 const matchCountEl = document.getElementById('match-count');
+const mapFilter = document.getElementById('map-filter');
+const statsEl = document.getElementById('stats');
+const metricToggle = document.getElementById('metric-toggle');
+const chartBox = document.getElementById('chart-box');
+const chartCanvas = document.getElementById('trend-chart');
+const chartMessage = document.getElementById('chart-message');
 const clearAllBtn = document.getElementById('clear-all');
 const storageWarning = document.getElementById('storage-warning');
 
@@ -178,6 +195,23 @@ tbody.addEventListener('click', (event) => {
   console.log(`ลบแล้ว (เหลือ ${remaining.length} แมตช์):`, target);
 });
 
+// --- 7) ตัวกรอง map และปุ่มเลือกค่าที่จะพล็อต -------------------------------
+mapFilter.addEventListener('change', () => {
+  console.log('กรองเฉพาะ map:', mapFilter.value);
+  refresh();
+});
+
+metricToggle.addEventListener('click', (event) => {
+  const button = event.target.closest('.metric');
+  if (!button) return;
+
+  currentMetric = button.dataset.metric;
+  metricToggle.querySelectorAll('.metric').forEach((btn) => {
+    btn.classList.toggle('is-active', btn === button);
+  });
+  refresh();
+});
+
 // --- ฟังก์ชันย่อย -------------------------------------------------------------
 
 // ตรวจข้อมูล คืน object แบบ { ชื่อช่อง: 'ข้อความ error' }
@@ -256,20 +290,180 @@ function toDateString(dateObj) {
   return `${y}-${m}-${d}`;
 }
 
-// จุดเดียวที่วาดหน้าจอใหม่ — เรียกทุกครั้งที่ข้อมูลเปลี่ยน (โหลด/เพิ่ม/ลบ/ล้าง)
-function render(matches) {
-  matchCountEl.textContent = matches.length;
-  clearAllBtn.disabled = matches.length === 0;
+// จุดเดียวที่วาดหน้าจอใหม่ — เรียกทุกครั้งที่ข้อมูลเปลี่ยน (โหลด/เพิ่ม/ลบ/ล้าง/เปลี่ยนตัวกรอง)
+function render(allMatches) {
+  matchCountEl.textContent = allMatches.length;
+  clearAllBtn.disabled = allMatches.length === 0;
 
+  renderFilterOptions(allMatches);
+
+  // ทุกส่วนด้านล่างมองเห็นเฉพาะแมตช์ที่ผ่านตัวกรอง
+  const matches = mapFilter.value === 'all'
+    ? allMatches
+    : allMatches.filter((match) => match.map === mapFilter.value);
+
+  renderStats(matches);
+  renderChart(matches);
+  renderTable(matches);
+}
+
+// อ่านข้อมูลใหม่จาก localStorage แล้ววาดใหม่ (ใช้ตอนเปลี่ยนตัวกรอง/เปลี่ยนกราฟ)
+function refresh() {
+  render(loadMatches());
+}
+
+// ตัวเลือกใน dropdown สร้างจาก map ที่มีอยู่จริงในข้อมูล
+function renderFilterOptions(allMatches) {
+  const maps = [...new Set(allMatches.map((match) => match.map))].sort();
+  const selected = mapFilter.value;
+
+  mapFilter.replaceChildren(new Option('ทุก map', 'all'));
+  maps.forEach((map) => mapFilter.appendChild(new Option(map, map)));
+
+  // ถ้า map ที่กรองอยู่ถูกลบไปหมดแล้ว ให้เด้งกลับเป็น "ทุก map"
+  mapFilter.value = maps.includes(selected) ? selected : 'all';
+}
+
+// การ์ดสรุป: จำนวนแมตช์, win rate, ค่าเฉลี่ยต่าง ๆ
+function renderStats(matches) {
+  const total = matches.length;
+
+  if (total === 0) {
+    statsEl.replaceChildren(muted('ยังไม่มีข้อมูลสำหรับตัวกรองนี้'));
+    return;
+  }
+
+  const wins = matches.filter((match) => match.result === 'win').length;
+  const losses = matches.filter((match) => match.result === 'loss').length;
+  const draws = total - wins - losses;
+  const average = (pick) => matches.reduce((sum, match) => sum + pick(match), 0) / total;
+
+  statsEl.replaceChildren(
+    tile('แมตช์', total, `${wins} ชนะ · ${losses} แพ้ · ${draws} เสมอ`),
+    tile('Win rate', `${((wins / total) * 100).toFixed(0)}%`, `ชนะ ${wins} จาก ${total}`),
+    tile('K/D เฉลี่ย', average(METRICS.kd.pick).toFixed(2)),
+    tile('ADR เฉลี่ย', average(METRICS.adr.pick).toFixed(1)),
+    tile('HS% เฉลี่ย', `${average(METRICS.hs.pick).toFixed(1)}%`),
+  );
+}
+
+// กราฟเทรนด์: เรียงเก่า → ใหม่ แล้วพล็อตค่าที่เลือกไว้ พร้อมเส้นค่าเฉลี่ย
+function renderChart(matches) {
+  // ถ้า CDN โหลดไม่ติด (เน็ตหลุด/ออฟไลน์) ก็ให้ส่วนอื่นของหน้าใช้งานได้ตามปกติ
+  if (typeof Chart === 'undefined') {
+    showChartMessage('โหลด Chart.js จาก CDN ไม่ได้ — ต่อเน็ตแล้ว refresh อีกที (ส่วนอื่นยังใช้ได้ปกติ)');
+    return;
+  }
+
+  if (matches.length === 0) {
+    showChartMessage('ยังไม่มีข้อมูลจะพล็อต');
+    return;
+  }
+
+  chartMessage.hidden = true;
+  chartBox.hidden = false;
+
+  const ordered = [...matches].sort((a, b) => -byNewestFirst(a, b));  // กลับด้าน: เก่า → ใหม่
+  const metric = METRICS[currentMetric];
+  const values = ordered.map(metric.pick);
+  const mean = values.reduce((sum, value) => sum + value, 0) / values.length;
+
+  const data = {
+    labels: ordered.map((match) => formatShortDate(match.date)),
+    datasets: [
+      {
+        label: metric.label,
+        data: values,
+        borderColor: metric.color,
+        backgroundColor: metric.color,
+        tension: 0.25,          // ทำให้เส้นโค้งนิด ๆ (0 = หักมุม)
+        pointRadius: 3,
+      },
+      {
+        label: `ค่าเฉลี่ย ${mean.toFixed(2)}`,
+        data: values.map(() => mean),   // เส้นตรงแนวนอน = ค่าเดิมซ้ำทุกจุด
+        borderColor: '#64748b',
+        borderDash: [6, 4],
+        pointRadius: 0,
+        fill: false,
+      },
+    ],
+  };
+
+  if (chart) {
+    chart.data = data;          // มีกราฟอยู่แล้ว แค่เปลี่ยนข้อมูลแล้ว update
+    chart.update();
+    return;
+  }
+
+  chart = new Chart(chartCanvas, {
+    type: 'line',
+    data,
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,   // ให้สูงตามกล่อง .chart-box ที่กำหนดใน CSS
+      interaction: { intersect: false, mode: 'index' },
+      plugins: { legend: { labels: { color: '#94a3b8', boxWidth: 12 } } },
+      scales: {
+        x: { ticks: { color: '#94a3b8', maxRotation: 0, autoSkipPadding: 16 }, grid: { color: 'rgba(255,255,255,0.06)' } },
+        y: { beginAtZero: true, ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.06)' } },
+      },
+    },
+  });
+}
+
+function showChartMessage(text) {
+  if (chart) { chart.destroy(); chart = null; }
+  chartBox.hidden = true;
+  chartMessage.textContent = text;
+  chartMessage.hidden = false;
+}
+
+// ตารางประวัติ (เรียงล่าสุดขึ้นก่อน)
+function renderTable(matches) {
   const isEmpty = matches.length === 0;
   tableWrap.hidden = isEmpty;
   emptyState.hidden = !isEmpty;
+  emptyState.textContent = mapFilter.value === 'all'
+    ? 'ยังไม่มีข้อมูล — กรอกแมตช์แรกด้านบนได้เลย'
+    : `ยังไม่มีแมตช์ของ ${mapFilter.value}`;
 
   // sort() แก้ array ตัวเดิม เลยก็อปด้วย [...matches] ก่อน จะได้ไม่ไปยุ่งกับลำดับที่เซฟไว้
   const sorted = [...matches].sort(byNewestFirst);
 
   tbody.replaceChildren();                       // ล้างแถวเก่าทั้งหมด
   sorted.forEach((match) => tbody.appendChild(buildRow(match)));
+}
+
+// การ์ดตัวเลขหนึ่งใบในส่วนสรุป
+function tile(label, value, sub) {
+  const box = document.createElement('div');
+  box.className = 'tile';
+
+  const valueEl = document.createElement('p');
+  valueEl.className = 'tile-value';
+  valueEl.textContent = value;
+
+  const labelEl = document.createElement('p');
+  labelEl.className = 'tile-label';
+  labelEl.textContent = label;
+
+  box.append(valueEl, labelEl);
+
+  if (sub) {
+    const subEl = document.createElement('p');
+    subEl.className = 'tile-sub';
+    subEl.textContent = sub;
+    box.appendChild(subEl);
+  }
+  return box;
+}
+
+function muted(text) {
+  const p = document.createElement('p');
+  p.className = 'muted';
+  p.textContent = text;
+  return p;
 }
 
 // เรียงจากใหม่ไปเก่า: วันที่ก่อน ถ้าวันเดียวกันใช้ id (= เวลาที่กดบันทึก) ตัดสิน
@@ -322,6 +516,12 @@ function cell(text, className) {
   td.textContent = text;
   if (className) td.className = className;
   return td;
+}
+
+// '2026-08-26' -> '26/08' (ใช้เป็น label ในกราฟ ให้สั้นเข้าไว้)
+function formatShortDate(isoDate) {
+  const [, m, d] = isoDate.split('-');
+  return `${d}/${m}`;
 }
 
 // '2026-08-26' -> '26/08/2026'
