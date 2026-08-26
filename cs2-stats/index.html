@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CS2 Match Tracker — บันทึกสถิติรายแมตช์</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <h1>CS2 Match Tracker</h1>
+    <p class="subtitle">กรอกสถิติหลังจบแต่ละแมตช์ — Milestone 1: ฟอร์ม + ตรวจข้อมูล</p>
+  </header>
+
+  <main>
+    <!-- ฟอร์มหลัก: novalidate ปิด popup ของเบราว์เซอร์ เพื่อให้เราคุมข้อความ error เอง -->
+    <form id="match-form" class="card" novalidate>
+      <div class="grid">
+
+        <div class="field">
+          <label for="date">วันที่เล่น</label>
+          <input type="date" id="date" name="date" required>
+          <p class="error" data-error-for="date"></p>
+        </div>
+
+        <div class="field">
+          <label for="map">Map</label>
+          <select id="map" name="map" required>
+            <option value="">— เลือก map —</option>
+            <option value="Ancient">Ancient</option>
+            <option value="Anubis">Anubis</option>
+            <option value="Dust II">Dust II</option>
+            <option value="Inferno">Inferno</option>
+            <option value="Mirage">Mirage</option>
+            <option value="Nuke">Nuke</option>
+            <option value="Overpass">Overpass</option>
+            <option value="Train">Train</option>
+            <option value="Vertigo">Vertigo</option>
+          </select>
+          <p class="error" data-error-for="map"></p>
+        </div>
+
+        <div class="field">
+          <label for="kills">Kills</label>
+          <input type="number" id="kills" name="kills" min="0" max="100" step="1"
+                 inputmode="numeric" placeholder="เช่น 21" required>
+          <p class="error" data-error-for="kills"></p>
+        </div>
+
+        <div class="field">
+          <label for="deaths">Deaths</label>
+          <input type="number" id="deaths" name="deaths" min="0" max="100" step="1"
+                 inputmode="numeric" placeholder="เช่น 17" required>
+          <p class="error" data-error-for="deaths"></p>
+        </div>
+
+        <div class="field">
+          <label for="adr">ADR <span class="hint">(Average Damage per Round)</span></label>
+          <input type="number" id="adr" name="adr" min="0" max="300" step="0.1"
+                 inputmode="decimal" placeholder="เช่น 84.6" required>
+          <p class="error" data-error-for="adr"></p>
+        </div>
+
+        <div class="field">
+          <label for="hs">HS% <span class="hint">(0–100)</span></label>
+          <input type="number" id="hs" name="hs" min="0" max="100" step="0.1"
+                 inputmode="decimal" placeholder="เช่น 45.5" required>
+          <p class="error" data-error-for="hs"></p>
+        </div>
+
+        <fieldset class="field field--full">
+          <legend>ผลการแข่ง</legend>
+          <div class="radio-row">
+            <label class="radio radio--win">
+              <input type="radio" name="result" value="win" required>
+              <span>ชนะ</span>
+            </label>
+            <label class="radio radio--loss">
+              <input type="radio" name="result" value="loss">
+              <span>แพ้</span>
+            </label>
+            <label class="radio radio--draw">
+              <input type="radio" name="result" value="draw">
+              <span>เสมอ</span>
+            </label>
+          </div>
+          <p class="error" data-error-for="result"></p>
+        </fieldset>
+
+      </div>
+
+      <div class="actions">
+        <button type="submit" class="btn btn--primary">บันทึกแมตช์</button>
+        <button type="reset" class="btn btn--ghost">ล้างฟอร์ม</button>
+      </div>
+    </form>
+
+    <!-- กล่องพรีวิว: โชว์ object ที่เพิ่งสร้าง เผื่อไม่ได้เปิด DevTools -->
+    <section id="preview" class="card preview" hidden>
+      <h2>ข้อมูลที่อ่านได้จากฟอร์ม</h2>
+      <p class="note">ยังไม่ได้เซฟลงที่ไหน — ตอนนี้แค่ <code>console.log</code> ออกมาดู
+        (การเซฟจริงจะทำใน Milestone 2 ด้วย localStorage)</p>
+      <pre id="preview-json"></pre>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
