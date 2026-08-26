@@ -4,22 +4,43 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CS2 Match Tracker — บันทึกสถิติรายแมตช์</title>
+  <meta name="description" content="บันทึกสถิติ CS2 รายแมตช์ ดูเทรนด์ฟอร์ม map ที่ถนัด และเป้าหมายการซ้อม">
+  <meta name="color-scheme" content="dark light">
+  <!-- ธีมเริ่มต้นคือมืด จะสว่างก็ต่อเมื่อเคยกดปุ่มเลือกไว้ -->
   <link rel="stylesheet" href="style.css">
+  <script>
+    // ตั้งธีมก่อนหน้าจะวาด กันจอกระพริบสีตรงข้ามตอนโหลด (ที่เหลืออยู่ใน theme.js)
+    try {
+      const saved = localStorage.getItem('cs2-theme');
+      if (saved === 'dark' || saved === 'light') document.documentElement.dataset.theme = saved;
+    } catch (err) {
+      /* โหมดส่วนตัวบางตัวห้ามอ่าน localStorage — ใช้ธีมตามระบบไปก่อน */
+    }
+  </script>
 </head>
 <body>
   <header class="site-header">
-    <h1>CS2 Match Tracker</h1>
-    <p class="subtitle">กรอกสถิติหลังจบแต่ละแมตช์ — บันทึก แก้ไข ดูเทรนด์ และเช็กลิสต์ซ้อมรายสัปดาห์</p>
+    <div>
+      <h1>CS2 Match Tracker</h1>
+      <p class="subtitle">กรอกสถิติหลังจบแต่ละแมตช์ — ดูเทรนด์ฟอร์ม map ที่ถนัด และความคืบหน้าของเป้าหมาย</p>
+    </div>
+    <button type="button" id="theme-toggle" class="btn btn--ghost btn--sm">โหมดสว่าง</button>
   </header>
 
   <main>
-    <!-- แถบสถานะ: อ่านจาก localStorage ตอนหน้าโหลด -->
+    <!-- แถบสถานะ + จัดการข้อมูล: อ่านจาก localStorage ตอนหน้าโหลด -->
     <section class="card storage-bar">
       <div>
         <p class="count"><strong id="match-count">0</strong> แมตช์ในเครื่องนี้</p>
         <p class="muted">เก็บใน localStorage ของเบราว์เซอร์ ใต้ key <code>cs2-matches</code></p>
       </div>
-      <button type="button" id="clear-all" class="btn btn--danger">ล้างข้อมูลทั้งหมด</button>
+      <div class="storage-actions">
+        <button type="button" id="export-btn" class="btn btn--ghost btn--sm">⬇ Export</button>
+        <button type="button" id="import-btn" class="btn btn--ghost btn--sm">⬆ Import</button>
+        <!-- input file ซ่อนไว้ ให้ปุ่มด้านบนเป็นคนกดแทน จะได้จัดสไตล์ได้ -->
+        <input type="file" id="import-input" accept="application/json,.json" hidden>
+        <button type="button" id="clear-all" class="btn btn--danger btn--sm">ล้างข้อมูลทั้งหมด</button>
+      </div>
     </section>
 
     <p id="storage-warning" class="warning" hidden></p>
@@ -119,7 +140,7 @@
 
       <div class="col">
 
-        <!-- ตัวกรองตาม map + สรุปภาพรวม -->
+        <!-- ตัวกรองตาม map + สรุปภาพรวม + สตรีค + เทรนด์ฟอร์ม -->
         <section class="card">
           <div class="section-head">
             <h2>ภาพรวม</h2>
@@ -131,6 +152,16 @@
             </label>
           </div>
           <div class="stats" id="stats"></div>
+          <div class="trend" id="trend"></div>
+        </section>
+
+        <!-- ขั้น 9: map ที่ทำผลงานดีสุด/แย่สุด -->
+        <section class="card">
+          <h2>Map ถนัด / Map ที่ต้องซ้อม
+            <span class="hint">(นับจากทุกแมตช์ เฉพาะ map ที่เล่นครบ 3 แมตช์)</span>
+          </h2>
+          <div class="boards" id="map-boards"></div>
+          <p class="muted" id="map-boards-note" hidden></p>
         </section>
 
         <!-- กราฟเทรนด์ด้วย Chart.js -->
@@ -168,7 +199,42 @@
             </table>
           </div>
 
+          <!-- โผล่เฉพาะจอมือถือ และเฉพาะตอนที่มีตารางให้ปัดจริง ๆ -->
+          <p class="muted scroll-hint">ปัดตารางไปทางซ้ายเพื่อดูคอลัมน์ที่เหลือ</p>
+
           <p id="empty-state" class="muted empty-state">ยังไม่มีข้อมูล — กรอกแมตช์แรกด้านบนได้เลย</p>
+        </section>
+
+        <!-- ขั้น 10: ตั้งเป้าหมาย + แถบความคืบหน้า -->
+        <section class="card">
+          <div class="section-head">
+            <h2>เป้าหมายของเรา</h2>
+            <button type="button" id="goal-clear" class="btn btn--ghost btn--sm" hidden>ล้างเป้าหมาย</button>
+          </div>
+
+          <form id="goal-form" class="goal-form" novalidate>
+            <div class="field">
+              <label for="goal-adr">ADR</label>
+              <input type="number" id="goal-adr" name="adr" min="1" max="300" step="0.1"
+                     inputmode="decimal" placeholder="เช่น 90">
+              <p class="error" data-error-for="adr"></p>
+            </div>
+            <div class="field">
+              <label for="goal-kd">K/D</label>
+              <input type="number" id="goal-kd" name="kd" min="0.1" max="10" step="0.01"
+                     inputmode="decimal" placeholder="เช่น 1.10">
+              <p class="error" data-error-for="kd"></p>
+            </div>
+            <div class="field">
+              <label for="goal-hs">HS%</label>
+              <input type="number" id="goal-hs" name="hs" min="1" max="100" step="0.1"
+                     inputmode="decimal" placeholder="เช่น 45">
+              <p class="error" data-error-for="hs"></p>
+            </div>
+            <button type="submit" class="btn btn--primary btn--sm">ตั้งเป้า</button>
+          </form>
+
+          <div class="goal-progress" id="goal-progress"></div>
         </section>
 
         <!-- เช็กลิสต์ซ้อมรายสัปดาห์ (เก็บแยกอีก key หนึ่ง) -->
@@ -188,6 +254,12 @@
 
   <!-- Chart.js ผ่าน CDN บรรทัดเดียว ต้องโหลดก่อน app.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <!-- ลำดับสำคัญ: 4 ไฟล์นี้นิยามฟังก์ชันที่ app.js เรียกตอนวาดหน้าครั้งแรก จึงต้องมาก่อน -->
+  <script src="theme.js"></script>
+  <script src="insights.js"></script>
+  <script src="goals.js"></script>
+  <script src="backup.js"></script>
   <script src="app.js"></script>
   <script src="practice.js"></script>
 </body>

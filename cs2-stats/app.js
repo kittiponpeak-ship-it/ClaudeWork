@@ -1,6 +1,11 @@
-// CS2 Match Tracker — ครบทั้ง 5 ขั้น
+// CS2 Match Tracker — ไฟล์หลัก
 // ไฟล์นี้ดูแล: ฟอร์ม (เพิ่ม/แก้ไข/ลบ), localStorage, ตัวกรอง map, สรุปผล, กราฟเทรนด์, ตาราง
-// (เช็กลิสต์ซ้อมรายสัปดาห์แยกไปอยู่ practice.js)
+// และเป็นคนสั่งวาดส่วนที่แยกไฟล์ออกไป ผ่านฟังก์ชัน render() ที่เดียว:
+//   insights.js  เทรนด์ฟอร์ม + map ถนัด/ต้องซ้อม + สตรีค
+//   goals.js     เป้าหมาย + แถบความคืบหน้า
+//   backup.js    export / import ไฟล์ JSON
+//   theme.js     สลับธีมมืด-สว่าง
+//   practice.js  เช็กลิสต์ซ้อมรายสัปดาห์ (แยกขาด ใช้ key ของตัวเอง)
 
 // ชื่อ key ที่ใช้ใน localStorage — ตั้งเป็นตัวแปรไว้ จะได้ไม่พิมพ์ผิดกระจายทั้งไฟล์
 const STORAGE_KEY = 'cs2-matches';
@@ -406,9 +411,12 @@ function render(allMatches) {
     ? allMatches
     : allMatches.filter((match) => match.map === mapFilter.value);
 
-  renderStats(matches);
+  renderStats(matches);           // สรุป + สตรีค
+  renderTrend(matches);           // ขั้น 8  (insights.js)
+  renderMapBoards(allMatches);    // ขั้น 9  — ดูทุกแมตช์เสมอ เพราะเป็นการเทียบ map กันเอง
   renderChart(matches);
   renderTable(matches);
+  renderGoals(matches);           // ขั้น 10 (goals.js)
 }
 
 // อ่านข้อมูลใหม่จาก localStorage แล้ววาดใหม่ (ใช้ตอนเปลี่ยนตัวกรอง/เปลี่ยนกราฟ/เข้า-ออกโหมดแก้ไข)
@@ -448,9 +456,12 @@ function renderStats(matches) {
   const draws = total - wins - losses;
   const average = (pick) => matches.reduce((sum, match) => sum + pick(match), 0) / total;
 
+  const streak = computeStreak(matches);   // ขั้น 11 — ชนะ/แพ้ติดกันกี่แมตช์
+
   statsEl.replaceChildren(
     tile('แมตช์', total, `${wins} ชนะ · ${losses} แพ้ · ${draws} เสมอ`),
     tile('Win rate', `${((wins / total) * 100).toFixed(0)}%`, `ชนะ ${wins} จาก ${total}`),
+    tile(`${RESULT_TEXT[streak.result]}ติดกัน`, streak.count, `ตั้งแต่ ${formatDate(streak.from)}`, `tile--${streak.result}`),
     tile('K/D เฉลี่ย', average(METRICS.kd.pick).toFixed(2)),
     tile('ADR เฉลี่ย', average(METRICS.adr.pick).toFixed(1)),
     tile('HS% เฉลี่ย', `${average(METRICS.hs.pick).toFixed(1)}%`),
@@ -502,24 +513,42 @@ function renderChart(matches) {
 
   if (chart) {
     chart.data = data;          // มีกราฟอยู่แล้ว แค่เปลี่ยนข้อมูลแล้ว update
+    applyChartTheme(chart.options);   // เผื่อเพิ่งสลับธีมมืด/สว่าง
     chart.update();
     return;
   }
 
-  chart = new Chart(chartCanvas, {
-    type: 'line',
-    data,
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,   // ให้สูงตามกล่อง .chart-box ที่กำหนดใน CSS
-      interaction: { intersect: false, mode: 'index' },
-      plugins: { legend: { labels: { color: '#94a3b8', boxWidth: 12 } } },
-      scales: {
-        x: { ticks: { color: '#94a3b8', maxRotation: 0, autoSkipPadding: 16 }, grid: { color: 'rgba(255,255,255,0.06)' } },
-        y: { beginAtZero: true, ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.06)' } },
-      },
+  const options = {
+    responsive: true,
+    maintainAspectRatio: false,   // ให้สูงตามกล่อง .chart-box ที่กำหนดใน CSS
+    interaction: { intersect: false, mode: 'index' },
+    plugins: { legend: { labels: { boxWidth: 12 } } },
+    scales: {
+      x: { ticks: { maxRotation: 0, autoSkipPadding: 16 }, grid: {} },
+      y: { beginAtZero: true, ticks: {}, grid: {} },
     },
-  });
+  };
+  applyChartTheme(options);
+
+  chart = new Chart(chartCanvas, { type: 'line', data, options });
+}
+
+// Chart.js วาดลง <canvas> เป็นรูปภาพ มันเลยรับสีจาก CSS เองไม่ได้ ต้องอ่านค่ามาป้อนให้
+function applyChartTheme(options) {
+  const text = cssVar('--muted', '#94a3b8');
+  const grid = cssVar('--grid', 'rgba(255, 255, 255, 0.06)');
+
+  options.plugins.legend.labels.color = text;
+  options.scales.x.ticks.color = text;
+  options.scales.y.ticks.color = text;
+  options.scales.x.grid.color = grid;
+  options.scales.y.grid.color = grid;
+}
+
+// อ่านค่าตัวแปร CSS (เช่น --muted) ที่ประกาศไว้บน :root ออกมาเป็นสตริง
+function cssVar(name, fallback) {
+  const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return value || fallback;
 }
 
 function showChartMessage(text) {
@@ -544,9 +573,9 @@ function renderTable(matches) {
 }
 
 // การ์ดตัวเลขหนึ่งใบในส่วนสรุป
-function tile(label, value, sub) {
+function tile(label, value, sub, modifier) {
   const box = document.createElement('div');
-  box.className = 'tile';
+  box.className = modifier ? `tile ${modifier}` : 'tile';
 
   const valueEl = document.createElement('p');
   valueEl.className = 'tile-value';

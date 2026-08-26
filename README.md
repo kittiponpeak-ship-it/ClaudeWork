@@ -1,3 +1,14 @@
+# ClaudeWork
+
+Two unrelated things live in this repo:
+
+- **`cs2-stats/`** — CS2 Match Tracker, a plain HTML/CSS/JS web app (see
+  [`cs2-stats/README.md`](cs2-stats/README.md)). The `index.html` and `.nojekyll`
+  at the repo root exist only so GitHub Pages serves that app from the Pages URL.
+- **`sql/`** — the SQL playground documented below.
+
+---
+
 # Passenger Database — SQL Playground
 
 SQL for the `public.passenger` table (Titanic manifest merged with Wikipedia data).

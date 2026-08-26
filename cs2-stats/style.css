@@ -1,17 +1,46 @@
-/* CS2 Match Tracker — style พื้นฐาน (ธีมมืด) */
+/* CS2 Match Tracker — style
+   สีทุกสีอยู่ในตัวแปร CSS ที่ :root ที่เดียว เวลาสลับธีมจึงแค่เปลี่ยนค่าตัวแปร
+   ไม่ต้องไล่แก้ทีละกฎ (ดู theme.js ประกอบ) */
 
+/* ธีมมืด = ค่าเริ่มต้น */
 :root {
   --bg: #10141a;
   --card: #182029;
+  --sunken: #0e1319;      /* พื้นที่ "จม" ลงไปจากการ์ด เช่นช่องกรอก, การ์ดตัวเลข */
   --line: #2a3542;
   --text: #e6edf3;
   --muted: #94a3b8;
   --accent: #f0a500;      /* ส้มแบบ CS */
+  --on-accent: #14181d;   /* สีตัวอักษรบนพื้นสีส้ม */
   --win: #4ade80;
   --loss: #f87171;
   --draw: #94a3b8;
   --danger: #fb7185;
+  --grid: rgba(255, 255, 255, 0.06);   /* เส้นตารางในกราฟ (JS อ่านค่านี้ไปให้ Chart.js) */
+  --hover: rgba(255, 255, 255, 0.03);
   --radius: 10px;
+
+  color-scheme: dark;     /* ให้ปฏิทิน/แถบเลื่อน/checkbox ของเบราว์เซอร์เป็นโทนมืดตาม */
+}
+
+/* ธีมสว่าง: ใช้เมื่อกดปุ่มเลือกเองเท่านั้น (theme.js เป็นคนใส่ data-theme="light" ให้ <html>) */
+:root[data-theme="light"] {
+  --bg: #eef1f6;
+  --card: #ffffff;
+  --sunken: #f5f7fa;
+  --line: #d5dce6;
+  --text: #16202b;
+  --muted: #5a6b7d;
+  --accent: #b26f00;      /* ส้มเข้มขึ้น ไม่งั้นตัวหนังสือสีส้มบนพื้นขาวจะจาง */
+  --on-accent: #ffffff;
+  --win: #15803d;
+  --loss: #b91c1c;
+  --draw: #64748b;
+  --danger: #be123c;
+  --grid: rgba(15, 23, 42, 0.10);
+  --hover: rgba(15, 23, 42, 0.035);
+
+  color-scheme: light;
 }
 
 * { box-sizing: border-box; }
@@ -31,10 +60,21 @@ main { max-width: 1120px; margin: 0 auto; }
 /* การ์ดทุกใบเว้นระยะเท่ากันด้วย gap ที่คอนเทนเนอร์ ไม่ต้องใส่ margin ทีละใบ */
 main { display: grid; gap: 20px; align-content: start; }
 
+/* min-width: 0 ทุกชั้น: ปกติ grid item จะหดแคบกว่าเนื้อหาข้างในไม่ได้
+   ตารางที่ตั้ง white-space: nowrap เลยดันคอลัมน์ให้กว้างเกินจอมือถือ ต้องปลดล็อกให้หดได้ */
 .layout { display: grid; gap: 20px; align-items: start; }
+.layout > * { min-width: 0; }
 .col { display: grid; gap: 20px; align-content: start; }
+.col > * { min-width: 0; }
 
-.site-header { margin-bottom: 24px; }
+.site-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
 
 h1 {
   margin: 0;
@@ -45,6 +85,8 @@ h1 {
 }
 
 .subtitle { margin: 8px 0 0 16px; color: var(--muted); font-size: 0.95rem; }
+
+#theme-toggle { white-space: nowrap; }
 
 .card {
   background: var(--card);
@@ -76,7 +118,7 @@ input[type="number"],
 select {
   width: 100%;
   padding: 10px 12px;
-  background: #0e1319;
+  background: var(--sunken);
   color: var(--text);
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -84,7 +126,7 @@ select {
   font-size: 0.95rem;
 }
 
-input:focus, select:focus, .btn:focus-visible {
+input:focus, select:focus, .btn:focus-visible, button:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
   border-color: var(--accent);
@@ -130,7 +172,8 @@ fieldset { border: 0; margin: 0; padding: 0; }
   cursor: pointer;
 }
 
-.btn--primary { background: var(--accent); color: #14181d; }
+.btn--sm { padding: 7px 14px; font-size: 0.85rem; }
+.btn--primary { background: var(--accent); color: var(--on-accent); }
 .btn--primary:hover { filter: brightness(1.1); }
 .btn--ghost { background: transparent; color: var(--muted); border-color: var(--line); }
 .btn--ghost:hover { color: var(--text); border-color: var(--muted); }
@@ -158,7 +201,7 @@ code {
   font-size: 0.85rem;
 }
 
-/* --- Milestone 2: แถบสถานะ localStorage --- */
+/* --- แถบสถานะ localStorage + ปุ่มจัดการข้อมูล --- */
 
 .storage-bar {
   display: flex;
@@ -169,12 +212,14 @@ code {
   padding: 16px 24px;
 }
 
+.storage-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
 .count { margin: 0; font-size: 1.05rem; }
 .count strong { font-size: 1.5rem; color: var(--accent); }
 .muted { margin: 2px 0 0; color: var(--muted); font-size: 0.85rem; }
 
 .btn--danger { background: transparent; color: var(--danger); border-color: var(--danger); }
-.btn--danger:hover:not(:disabled) { background: var(--danger); color: #14181d; }
+.btn--danger:hover:not(:disabled) { background: var(--danger); color: #ffffff; }
 .btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .warning {
@@ -188,12 +233,15 @@ code {
   font-size: 0.88rem;
 }
 
-/* --- Milestone 3: ตารางประวัติ --- */
+/* --- ตารางประวัติ --- */
 
 h2 { margin: 0 0 16px; font-size: 1.1rem; }
 
-/* ตารางกว้างเกินจอ ให้เลื่อนในกล่องตัวเอง ไม่ดันทั้งหน้าให้เลื่อนซ้ายขวา */
-.table-wrap { overflow-x: auto; }
+/* ตารางกว้างเกินจอ ให้เลื่อนในกล่องตัวเอง ไม่ดันทั้งหน้าให้เลื่อนซ้ายขวา
+   position: relative จำเป็นด้วย: ในหัวตารางมี .sr-only ที่เป็น position: absolute
+   ถ้ากล่องนี้ไม่ถูกตั้งเป็น "จุดอ้างอิง" มันจะไปอิงกับทั้งหน้าแทน แล้วหลุดออกไปนอกจอ
+   จนหน้าเลื่อนซ้ายขวาได้ทั้งหน้า (เห็นชัดตอนเปิดบนมือถือ) */
+.table-wrap { position: relative; overflow-x: auto; }
 
 table {
   width: 100%;
@@ -217,7 +265,7 @@ th {
 }
 
 tbody tr:last-child td { border-bottom: 0; }
-tbody tr:hover { background: rgba(255, 255, 255, 0.03); }
+tbody tr:hover { background: var(--hover); }
 
 /* ตัวเลขชิดขวา + ความกว้างตัวเลขเท่ากันทุกตัว อ่านง่ายกว่าเวลาเทียบกันเป็นคอลัมน์ */
 .num { text-align: right; font-variant-numeric: tabular-nums; }
@@ -259,6 +307,7 @@ tbody tr.is-editing { background: rgba(240, 165, 0, 0.09); }
 tbody tr.is-editing td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
 
 .empty-state { margin: 0; padding: 8px 0; }
+.scroll-hint { display: none; }
 
 /* ซ่อนจากสายตา แต่ screen reader ยังอ่านเจอ */
 .sr-only {
@@ -269,7 +318,7 @@ tbody tr.is-editing td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
   white-space: nowrap;
 }
 
-/* --- Milestone 4–5: สรุปผล, กราฟ, เช็กลิสต์ --- */
+/* --- สรุปผล, กราฟ, เช็กลิสต์ --- */
 
 .section-head {
   display: flex;
@@ -294,16 +343,17 @@ tbody tr.is-editing td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
 
 .filter select { width: auto; padding: 7px 10px; font-size: 0.88rem; }
 
-/* การ์ดตัวเลขสรุป */
+/* การ์ดตัวเลขสรุป — auto-fit จะยัดให้ได้มากที่สุดเท่าที่กว้างพอ
+   ตั้ง 98px เพื่อให้ทั้ง 6 ใบลงได้ในแถวเดียวบนจอคอม ไม่เหลือใบเดียวตกไปอยู่แถวล่าง */
 .stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(98px, 1fr));
   gap: 12px;
 }
 
 .tile {
   padding: 14px;
-  background: #0e1319;
+  background: var(--sunken);
   border: 1px solid var(--line);
   border-radius: 8px;
 }
@@ -319,6 +369,119 @@ tbody tr.is-editing td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
 
 .tile-label { margin: 2px 0 0; font-size: 0.82rem; color: var(--text); }
 .tile-sub { margin: 4px 0 0; font-size: 0.75rem; color: var(--muted); }
+
+/* ไทล์สตรีค: ให้สีบอกเลยว่ากำลังชนะรวดหรือแพ้รวด */
+.tile--win .tile-value { color: var(--win); }
+.tile--loss .tile-value { color: var(--loss); }
+.tile--draw .tile-value { color: var(--draw); }
+
+/* --- ขั้น 8: เทรนด์ฟอร์ม --- */
+
+.trend:not(:empty) {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.trend-caption { margin: 0 0 10px; }
+
+.trend-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(115px, 1fr));
+  gap: 10px;
+}
+
+.trend-chip {
+  padding: 10px 12px;
+  background: var(--sunken);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.trend-chip-head {
+  margin: 0;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+}
+
+.trend-chip-value {
+  margin: 2px 0 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.trend-chip-sub { margin: 2px 0 0; font-size: 0.75rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.trend-chip.is-up { border-color: var(--win); }
+.trend-chip.is-up .trend-chip-value { color: var(--win); }
+.trend-chip.is-down { border-color: var(--loss); }
+.trend-chip.is-down .trend-chip-value { color: var(--loss); }
+.trend-chip.is-flat .trend-chip-value { color: var(--muted); }
+
+/* --- ขั้น 9: map ถนัด / map ที่ต้องซ้อม --- */
+
+.boards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+}
+
+.board {
+  padding: 14px 16px;
+  background: var(--sunken);
+  border: 1px solid var(--line);
+  border-left-width: 4px;
+  border-radius: 8px;
+}
+
+.board--best { border-left-color: var(--win); }
+.board--worst { border-left-color: var(--loss); }
+
+.board-title {
+  margin: 0;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+}
+
+.board-map { margin: 4px 0 0; font-size: 1.3rem; font-weight: 700; line-height: 1.2; }
+.board--best .board-map { color: var(--win); }
+.board--worst .board-map { color: var(--loss); }
+.board-rate { margin: 2px 0 0; font-size: 0.95rem; font-variant-numeric: tabular-nums; }
+.board-sub { margin: 4px 0 0; font-size: 0.78rem; color: var(--muted); }
+
+/* --- ขั้น 10: เป้าหมาย --- */
+
+/* ช่องกรอกเรียงเป็นแถว ปุ่มลงบรรทัดใหม่เต็มแถว (1 / -1 = ตั้งแต่คอลัมน์แรกถึงคอลัมน์สุดท้าย) */
+.goal-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(105px, 1fr));
+  gap: 12px;
+}
+
+.goal-form .btn { grid-column: 1 / -1; justify-self: start; }
+
+.goal-progress { display: grid; gap: 14px; margin-top: 18px; }
+.goal-progress .trend-caption { margin: 0; }
+
+.goal-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+  font-size: 0.88rem;
+}
+
+.goal-name { font-weight: 600; }
+.goal-value { color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.goal-item .progress { margin-bottom: 0; }
+.goal-item.is-reached .goal-name { color: var(--win); }
+.goal-item.is-reached .progress-fill { background: var(--win); }
 
 /* ปุ่มสลับค่าที่พล็อต */
 .metric-toggle { display: flex; gap: 6px; }
@@ -336,7 +499,7 @@ tbody tr.is-editing td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
 }
 
 .metric:hover { color: var(--text); }
-.metric.is-active { background: var(--accent); border-color: var(--accent); color: #14181d; }
+.metric.is-active { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 
 /* Chart.js ต้องการกล่องที่มีความสูงแน่นอน คู่กับ maintainAspectRatio: false */
 .chart-box { position: relative; height: 280px; }
@@ -347,7 +510,8 @@ tbody tr.is-editing td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
 
 .progress {
   height: 6px;
-  background: #0e1319;
+  background: var(--sunken);
+  border: 1px solid var(--line);
   border-radius: 999px;
   overflow: hidden;
   margin-bottom: 16px;
@@ -378,7 +542,7 @@ tbody tr.is-editing td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
 .check input { width: 17px; height: 17px; accent-color: var(--accent); cursor: pointer; }
 .check input:checked + span { color: var(--muted); text-decoration: line-through; }
 
-/* จอกว้างพอ: ฟอร์มอยู่ซ้ายกว้างคงที่ / สรุป-กราฟ-ตาราง-เช็กลิสต์อยู่ขวา
+/* จอกว้างพอ: ฟอร์มอยู่ซ้ายกว้างคงที่ / ส่วนที่เหลืออยู่ขวา
    minmax(0, 1fr) สำคัญ ไม่งั้นตารางที่กว้างเกินจะดันคอลัมน์ขวาให้บานออก */
 @media (min-width: 980px) {
   .layout { grid-template-columns: minmax(330px, 380px) minmax(0, 1fr); }
@@ -391,8 +555,24 @@ tbody tr.is-editing td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
   #match-form { position: sticky; top: 20px; }
 }
 
+/* --- จอมือถือ: กรอกทันทีหลังเล่นจบได้ --- */
 @media (max-width: 560px) {
+  body { padding: 20px 12px 48px; }
+  h1 { font-size: 1.45rem; }
+  .subtitle { margin-left: 16px; font-size: 0.88rem; }
+  .site-header { align-items: center; margin-bottom: 18px; }
+
+  .card { padding: 18px; }
+  .storage-bar { align-items: flex-start; padding: 16px 18px; }
+  .storage-actions { width: 100%; }
+  .storage-actions .btn { flex: 1 1 auto; }   /* ปุ่มยืดเต็มแถว นิ้วกดง่ายขึ้น */
+
   .grid { grid-template-columns: 1fr; }
-  .storage-bar { align-items: flex-start; }
   .chart-box { height: 240px; }
+
+  /* ตารางกว้างกว่าจอแน่ ๆ บอกไว้หน่อยว่าปัดดูได้ (ซ่อนตอนไม่มีข้อมูล ตารางถูก hidden อยู่) */
+  .scroll-hint { display: block; margin-top: 10px; }
+  .table-wrap[hidden] + .scroll-hint { display: none; }
+  th, td { padding: 9px 10px; }
+  .goal-form .btn { justify-self: stretch; }
 }
