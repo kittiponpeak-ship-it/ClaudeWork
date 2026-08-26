@@ -177,6 +177,78 @@ pre {
   font-size: 0.88rem;
 }
 
+/* --- Milestone 3: ตารางประวัติ --- */
+
+h2 { margin: 0 0 16px; font-size: 1.1rem; }
+
+/* ตารางกว้างเกินจอ ให้เลื่อนในกล่องตัวเอง ไม่ดันทั้งหน้าให้เลื่อนซ้ายขวา */
+.table-wrap { overflow-x: auto; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+  white-space: nowrap;
+}
+
+th, td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+}
+
+th {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+  border-bottom-color: var(--muted);
+}
+
+tbody tr:last-child td { border-bottom: 0; }
+tbody tr:hover { background: rgba(255, 255, 255, 0.03); }
+
+/* ตัวเลขชิดขวา + ความกว้างตัวเลขเท่ากันทุกตัว อ่านง่ายกว่าเวลาเทียบกันเป็นคอลัมน์ */
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+.sub { display: block; font-size: 0.75rem; color: var(--muted); }
+
+.badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border: 1px solid currentColor;
+}
+
+.badge--win { color: var(--win); }
+.badge--loss { color: var(--loss); }
+.badge--draw { color: var(--draw); }
+
+.row-delete {
+  padding: 2px 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--muted);
+  font: inherit;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.row-delete:hover { color: var(--danger); border-color: var(--danger); }
+
+.empty-state { margin: 0; padding: 8px 0; }
+
+/* ซ่อนจากสายตา แต่ screen reader ยังอ่านเจอ */
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
 @media (max-width: 560px) {
   .grid { grid-template-columns: 1fr; }
   .storage-bar { align-items: flex-start; }

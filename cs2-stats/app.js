@@ -1,18 +1,19 @@
-// CS2 Match Tracker — Milestone 2
-// ขั้นนี้เพิ่ม: เซฟแมตช์ลง localStorage เป็น array ของ object
-// refresh หน้าเว็บแล้วข้อมูลต้องยังอยู่ (ตารางเต็ม ๆ จะทำใน Milestone 3)
+// CS2 Match Tracker — Milestone 3
+// ขั้นนี้เพิ่ม: เอาข้อมูลใน localStorage มาวาดเป็นตาราง เรียงล่าสุดขึ้นก่อน + ลบทีละแถว
 
 // ชื่อ key ที่ใช้ใน localStorage — ตั้งเป็นตัวแปรไว้ จะได้ไม่พิมพ์ผิดกระจายทั้งไฟล์
 const STORAGE_KEY = 'cs2-matches';
 
+// ข้อความไทยของผลการแข่ง — ต้องอยู่บนสุด เพราะ render() ตอนหน้าโหลดเรียกใช้ก่อน
+const RESULT_TEXT = { win: 'ชนะ', loss: 'แพ้', draw: 'เสมอ' };
+
 // --- 1) จับ element ที่ต้องใช้ ---------------------------------------------
 const form = document.getElementById('match-form');
 const dateInput = document.getElementById('date');
-const preview = document.getElementById('preview');
-const previewTitle = document.getElementById('preview-title');
-const previewJson = document.getElementById('preview-json');
+const tbody = document.getElementById('match-tbody');
+const tableWrap = document.querySelector('.table-wrap');
+const emptyState = document.getElementById('empty-state');
 const matchCountEl = document.getElementById('match-count');
-const lastSavedEl = document.getElementById('last-saved');
 const clearAllBtn = document.getElementById('clear-all');
 const storageWarning = document.getElementById('storage-warning');
 
@@ -78,10 +79,7 @@ if (!storageAvailable()) {
 
 const savedOnLoad = loadMatches();
 console.log(`โหลดจาก localStorage ได้ ${savedOnLoad.length} แมตช์:`, savedOnLoad);
-renderSummary(savedOnLoad);
-if (savedOnLoad.length > 0) {
-  showPreview(savedOnLoad[savedOnLoad.length - 1], 'แมตช์ล่าสุดที่บันทึกไว้');
-}
+render(savedOnLoad);
 
 // --- 4) ตอน submit -----------------------------------------------------------
 form.addEventListener('submit', (event) => {
@@ -135,8 +133,7 @@ form.addEventListener('submit', (event) => {
   console.log(ok ? `บันทึกแล้ว (รวม ${matches.length} แมตช์):` : 'บันทึกไม่สำเร็จ:', match);
   console.table(matches);
 
-  renderSummary(matches);
-  showPreview(match, ok ? `บันทึกแล้ว — แมตช์ที่ ${matches.length}` : 'ยังไม่ได้บันทึก');
+  render(matches);
 
   // เคลียร์เฉพาะช่องสถิติ (คงวันที่ไว้) เพื่อกรอกแมตช์ถัดไปต่อได้เลย
   clearStatFields();
@@ -158,8 +155,27 @@ clearAllBtn.addEventListener('click', () => {
 
   localStorage.removeItem(STORAGE_KEY);
   console.log('ล้างข้อมูลใน localStorage แล้ว');
-  renderSummary([]);
-  preview.hidden = true;
+  render([]);
+});
+
+// --- 6) ปุ่มลบรายแถว --------------------------------------------------------
+// ผูก listener ไว้ที่ <tbody> ตัวเดียว แทนที่จะผูกทีละปุ่ม (เรียกว่า event delegation)
+// ข้อดี: แถวที่วาดใหม่ทีหลังก็กดได้เลย ไม่ต้องผูก listener ใหม่ทุกครั้ง
+tbody.addEventListener('click', (event) => {
+  const button = event.target.closest('.row-delete');
+  if (!button) return;                       // คลิกโดนที่อื่นในตาราง ไม่ต้องทำอะไร
+
+  const id = Number(button.dataset.id);      // data-id="..." อ่านได้จาก dataset
+  const matches = loadMatches();
+  const target = matches.find((match) => match.id === id);
+  if (!target) return;
+
+  if (!confirm(`ลบแมตช์ ${target.map} วันที่ ${formatDate(target.date)}?`)) return;
+
+  const remaining = matches.filter((match) => match.id !== id);
+  saveMatches(remaining);
+  render(remaining);
+  console.log(`ลบแล้ว (เหลือ ${remaining.length} แมตช์):`, target);
 });
 
 // --- ฟังก์ชันย่อย -------------------------------------------------------------
@@ -240,25 +256,78 @@ function toDateString(dateObj) {
   return `${y}-${m}-${d}`;
 }
 
-// แถบสรุปด้านบน: มีกี่แมตช์ + แมตช์ล่าสุดคืออะไร
-function renderSummary(matches) {
+// จุดเดียวที่วาดหน้าจอใหม่ — เรียกทุกครั้งที่ข้อมูลเปลี่ยน (โหลด/เพิ่ม/ลบ/ล้าง)
+function render(matches) {
   matchCountEl.textContent = matches.length;
   clearAllBtn.disabled = matches.length === 0;
 
-  if (matches.length === 0) {
-    lastSavedEl.textContent = 'ยังไม่มีข้อมูล — กรอกแมตช์แรกได้เลย';
-    return;
-  }
+  const isEmpty = matches.length === 0;
+  tableWrap.hidden = isEmpty;
+  emptyState.hidden = !isEmpty;
 
-  const last = matches[matches.length - 1];
-  const resultText = { win: 'ชนะ', loss: 'แพ้', draw: 'เสมอ' }[last.result] ?? last.result;
-  lastSavedEl.textContent = `ล่าสุด: ${last.map} · ${last.date} · K/D ${last.kd} · ${resultText}`;
+  // sort() แก้ array ตัวเดิม เลยก็อปด้วย [...matches] ก่อน จะได้ไม่ไปยุ่งกับลำดับที่เซฟไว้
+  const sorted = [...matches].sort(byNewestFirst);
+
+  tbody.replaceChildren();                       // ล้างแถวเก่าทั้งหมด
+  sorted.forEach((match) => tbody.appendChild(buildRow(match)));
 }
 
-function showPreview(match, title) {
-  previewTitle.textContent = title;
-  previewJson.textContent = JSON.stringify(match, null, 2);
-  preview.hidden = false;
+// เรียงจากใหม่ไปเก่า: วันที่ก่อน ถ้าวันเดียวกันใช้ id (= เวลาที่กดบันทึก) ตัดสิน
+function byNewestFirst(a, b) {
+  if (a.date === b.date) return b.id - a.id;
+  return a.date < b.date ? 1 : -1;               // 'YYYY-MM-DD' เทียบแบบ string ได้เลย
+}
+
+// สร้าง <tr> ของแมตช์หนึ่งแถว
+function buildRow(match) {
+  const row = document.createElement('tr');
+
+  row.appendChild(cell(formatDate(match.date)));
+  row.appendChild(cell(match.map));
+
+  // ช่อง K/D: ตัวเลขใหญ่ + kills/deaths ตัวเล็กใต้กำกับ
+  const kd = cell(Number(match.kd).toFixed(2), 'num');
+  const detail = document.createElement('span');
+  detail.className = 'sub';
+  detail.textContent = `${match.kills}/${match.deaths}`;
+  kd.appendChild(detail);
+  row.appendChild(kd);
+
+  row.appendChild(cell(Number(match.adr).toFixed(1), 'num'));
+  row.appendChild(cell(`${Number(match.hs).toFixed(1)}%`, 'num'));
+
+  const resultCell = document.createElement('td');
+  const badge = document.createElement('span');
+  badge.className = `badge badge--${match.result}`;
+  badge.textContent = RESULT_TEXT[match.result] ?? match.result;
+  resultCell.appendChild(badge);
+  row.appendChild(resultCell);
+
+  const actionCell = document.createElement('td');
+  const deleteBtn = document.createElement('button');
+  deleteBtn.type = 'button';
+  deleteBtn.className = 'row-delete';
+  deleteBtn.dataset.id = match.id;              // ฝังไอดีไว้กับปุ่ม ไว้หาตอนกดลบ
+  deleteBtn.textContent = '✕';
+  deleteBtn.title = 'ลบแมตช์นี้';
+  actionCell.appendChild(deleteBtn);
+  row.appendChild(actionCell);
+
+  return row;
+}
+
+// ตัวช่วยสร้าง <td> — ใช้ textContent (ไม่ใช่ innerHTML) ข้อความแปลก ๆ จะได้ไม่กลายเป็น HTML
+function cell(text, className) {
+  const td = document.createElement('td');
+  td.textContent = text;
+  if (className) td.className = className;
+  return td;
+}
+
+// '2026-08-26' -> '26/08/2026'
+function formatDate(isoDate) {
+  const [y, m, d] = isoDate.split('-');
+  return `${d}/${m}/${y}`;
 }
 
 function showWarning(message) {

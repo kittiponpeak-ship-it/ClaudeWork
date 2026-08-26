@@ -9,7 +9,7 @@
 <body>
   <header class="site-header">
     <h1>CS2 Match Tracker</h1>
-    <p class="subtitle">กรอกสถิติหลังจบแต่ละแมตช์ — Milestone 2: เซฟลง localStorage</p>
+    <p class="subtitle">กรอกสถิติหลังจบแต่ละแมตช์ — Milestone 3: ตารางประวัติแมตช์</p>
   </header>
 
   <main>
@@ -17,7 +17,7 @@
     <section class="card storage-bar">
       <div>
         <p class="count"><strong id="match-count">0</strong> แมตช์ในเครื่องนี้</p>
-        <p class="muted" id="last-saved"></p>
+        <p class="muted">เก็บใน localStorage ของเบราว์เซอร์ ใต้ key <code>cs2-matches</code></p>
       </div>
       <button type="button" id="clear-all" class="btn btn--danger">ล้างข้อมูลทั้งหมด</button>
     </section>
@@ -107,12 +107,28 @@
       </div>
     </form>
 
-    <!-- กล่องพรีวิว: โชว์แมตช์ล่าสุดที่อยู่ใน localStorage -->
-    <section id="preview" class="card preview" hidden>
-      <h2 id="preview-title">แมตช์ล่าสุดที่บันทึกไว้</h2>
-      <p class="note">เก็บอยู่ใน localStorage ของเบราว์เซอร์ ใต้ key <code>cs2-matches</code>
-        — ปิดแท็บหรือ refresh แล้วข้อมูลยังอยู่ (ตารางเต็ม ๆ จะทำใน Milestone 3)</p>
-      <pre id="preview-json"></pre>
+    <!-- ตารางประวัติ: วาดใหม่ทุกครั้งที่ข้อมูลเปลี่ยน -->
+    <section class="card">
+      <h2>ประวัติแมตช์ <span class="hint">(ล่าสุดอยู่บนสุด)</span></h2>
+
+      <div class="table-wrap">
+        <table id="match-table">
+          <thead>
+            <tr>
+              <th>วันที่</th>
+              <th>Map</th>
+              <th class="num">K/D</th>
+              <th class="num">ADR</th>
+              <th class="num">HS%</th>
+              <th>ผล</th>
+              <th><span class="sr-only">ลบ</span></th>
+            </tr>
+          </thead>
+          <tbody id="match-tbody"></tbody>
+        </table>
+      </div>
+
+      <p id="empty-state" class="muted empty-state">ยังไม่มีข้อมูล — กรอกแมตช์แรกด้านบนได้เลย</p>
     </section>
   </main>
 
