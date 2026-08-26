@@ -1,19 +1,89 @@
-// CS2 Match Tracker — Milestone 1
-// เป้าหมายของขั้นนี้: อ่านค่าจากฟอร์มให้ถูกต้อง แล้ว console.log ออกมาดู
-// (ยังไม่เซฟลง localStorage — อันนั้นคือ Milestone 2)
+// CS2 Match Tracker — Milestone 2
+// ขั้นนี้เพิ่ม: เซฟแมตช์ลง localStorage เป็น array ของ object
+// refresh หน้าเว็บแล้วข้อมูลต้องยังอยู่ (ตารางเต็ม ๆ จะทำใน Milestone 3)
+
+// ชื่อ key ที่ใช้ใน localStorage — ตั้งเป็นตัวแปรไว้ จะได้ไม่พิมพ์ผิดกระจายทั้งไฟล์
+const STORAGE_KEY = 'cs2-matches';
 
 // --- 1) จับ element ที่ต้องใช้ ---------------------------------------------
 const form = document.getElementById('match-form');
 const dateInput = document.getElementById('date');
 const preview = document.getElementById('preview');
+const previewTitle = document.getElementById('preview-title');
 const previewJson = document.getElementById('preview-json');
+const matchCountEl = document.getElementById('match-count');
+const lastSavedEl = document.getElementById('last-saved');
+const clearAllBtn = document.getElementById('clear-all');
+const storageWarning = document.getElementById('storage-warning');
 
 // ตั้งค่าเริ่มต้นเป็น "วันนี้" และห้ามเลือกวันในอนาคต
 const today = toDateString(new Date());
 dateInput.value = today;
 dateInput.max = today;
 
-// --- 2) ตอน submit -----------------------------------------------------------
+// --- 2) ส่วนที่คุยกับ localStorage ------------------------------------------
+// localStorage เก็บได้แต่ "ข้อความ" เท่านั้น
+// ตอนเซฟ: object/array -> JSON.stringify -> string
+// ตอนอ่าน: string -> JSON.parse -> object/array
+
+// อ่านทั้ง array ออกมา ถ้าไม่มีหรือข้อมูลพัง ให้คืน array ว่างแทนการ crash
+function loadMatches() {
+  try {
+    const text = localStorage.getItem(STORAGE_KEY);
+    if (!text) return [];              // ยังไม่เคยเซฟ -> getItem คืน null
+    const data = JSON.parse(text);
+    return Array.isArray(data) ? data : [];
+  } catch (err) {
+    console.error('อ่านข้อมูลจาก localStorage ไม่ได้ เริ่มใหม่เป็นลิสต์ว่าง:', err);
+    return [];
+  }
+}
+
+// เขียนทั้ง array กลับลงไป (localStorage ไม่มีคำสั่ง "เพิ่มทีละตัว")
+function saveMatches(matches) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(matches));
+    return true;
+  } catch (err) {
+    // เจอได้จริงตอนพื้นที่เต็ม (QuotaExceededError) หรือเบราว์เซอร์บล็อกการเก็บข้อมูล
+    console.error('เซฟไม่สำเร็จ:', err);
+    showWarning('เซฟข้อมูลไม่สำเร็จ — เบราว์เซอร์อาจบล็อก localStorage หรือพื้นที่เต็ม');
+    return false;
+  }
+}
+
+// เช็คว่าเบราว์เซอร์ให้ใช้ localStorage จริงไหม (โหมดส่วนตัวบางตัวห้ามใช้)
+function storageAvailable() {
+  try {
+    const probe = '__cs2_probe__';
+    localStorage.setItem(probe, '1');
+    localStorage.removeItem(probe);
+    return true;
+  } catch (err) {
+    return false;
+  }
+}
+
+// กันไอดีซ้ำ เผื่อกด submit สองครั้งภายในมิลลิวินาทีเดียวกัน
+function makeId(matches) {
+  let id = Date.now();
+  while (matches.some((match) => match.id === id)) id += 1;
+  return id;
+}
+
+// --- 3) ตอนหน้าเว็บโหลด -----------------------------------------------------
+if (!storageAvailable()) {
+  showWarning('เบราว์เซอร์นี้ไม่ให้ใช้ localStorage (เช่นเปิดในโหมดส่วนตัว) — ฟอร์มยังกรอกได้ แต่ข้อมูลจะไม่ถูกเซฟ');
+}
+
+const savedOnLoad = loadMatches();
+console.log(`โหลดจาก localStorage ได้ ${savedOnLoad.length} แมตช์:`, savedOnLoad);
+renderSummary(savedOnLoad);
+if (savedOnLoad.length > 0) {
+  showPreview(savedOnLoad[savedOnLoad.length - 1], 'แมตช์ล่าสุดที่บันทึกไว้');
+}
+
+// --- 4) ตอน submit -----------------------------------------------------------
 form.addEventListener('submit', (event) => {
   // กันไม่ให้เบราว์เซอร์ reload หน้า (พฤติกรรมปกติของ form)
   event.preventDefault();
@@ -43,8 +113,11 @@ form.addEventListener('submit', (event) => {
   const kills = Number(raw.kills);
   const deaths = Number(raw.deaths);
 
+  // อ่านของเก่าออกมาก่อน แล้วค่อยต่อท้าย
+  const matches = loadMatches();
+
   const match = {
-    id: Date.now(),              // ไอดีง่าย ๆ ไว้ใช้ตอน Milestone 2–3
+    id: makeId(matches),
     date: raw.date,              // 'YYYY-MM-DD'
     map: raw.map,
     kills,
@@ -53,24 +126,40 @@ form.addEventListener('submit', (event) => {
     adr: Number(raw.adr),
     hs: Number(raw.hs),
     result: raw.result,          // 'win' | 'loss' | 'draw'
+    savedAt: new Date().toISOString(), // เวลาที่กดบันทึก เผื่อใช้เรียงลำดับทีหลัง
   };
 
-  // --- 3) ผลลัพธ์ของ Milestone 1: log ออกมาดูว่าอ่านค่าถูกไหม ---
-  console.log('แมตช์ที่กรอก:', match);
-  console.table([match]);
+  matches.push(match);
+  const ok = saveMatches(matches);
 
-  showPreview(match);
+  console.log(ok ? `บันทึกแล้ว (รวม ${matches.length} แมตช์):` : 'บันทึกไม่สำเร็จ:', match);
+  console.table(matches);
+
+  renderSummary(matches);
+  showPreview(match, ok ? `บันทึกแล้ว — แมตช์ที่ ${matches.length}` : 'ยังไม่ได้บันทึก');
 
   // เคลียร์เฉพาะช่องสถิติ (คงวันที่ไว้) เพื่อกรอกแมตช์ถัดไปต่อได้เลย
   clearStatFields();
 });
 
-// ล้าง error + ซ่อนพรีวิว เวลากดปุ่ม "ล้างฟอร์ม"
+// ล้าง error เวลากดปุ่ม "ล้างฟอร์ม" (ปุ่มนี้ล้างแค่ช่องกรอก ไม่ยุ่งกับข้อมูลที่เซฟไว้)
 form.addEventListener('reset', () => {
   clearErrors();
-  preview.hidden = true;
   // ต้องรอให้ reset ทำงานเสร็จก่อน ค่อยเซ็ตวันที่กลับเป็นวันนี้
   setTimeout(() => { dateInput.value = today; }, 0);
+});
+
+// --- 5) ปุ่มล้างข้อมูลทั้งหมด --------------------------------------------------
+clearAllBtn.addEventListener('click', () => {
+  const matches = loadMatches();
+  if (matches.length === 0) return;
+
+  if (!confirm(`ลบข้อมูลทั้งหมด ${matches.length} แมตช์? กู้คืนไม่ได้นะ`)) return;
+
+  localStorage.removeItem(STORAGE_KEY);
+  console.log('ล้างข้อมูลใน localStorage แล้ว');
+  renderSummary([]);
+  preview.hidden = true;
 });
 
 // --- ฟังก์ชันย่อย -------------------------------------------------------------
@@ -122,6 +211,10 @@ function showErrors(errors) {
   if (target) target.focus();
 }
 
+function clearErrors() {
+  form.querySelectorAll('.error').forEach((slot) => { slot.textContent = ''; });
+}
+
 // ล้างช่องสถิติทั้งหมด แต่ไม่แตะช่องวันที่
 function clearStatFields() {
   ['map', 'kills', 'deaths', 'adr', 'hs'].forEach((id) => {
@@ -131,10 +224,6 @@ function clearStatFields() {
     radio.checked = false;
   });
   document.getElementById('map').focus();
-}
-
-function clearErrors() {
-  form.querySelectorAll('.error').forEach((slot) => { slot.textContent = ''; });
 }
 
 // K/D: ถ้าตายศูนย์ครั้ง หารไม่ได้ ให้ใช้จำนวน kills ไปเลย
@@ -151,7 +240,28 @@ function toDateString(dateObj) {
   return `${y}-${m}-${d}`;
 }
 
-function showPreview(match) {
+// แถบสรุปด้านบน: มีกี่แมตช์ + แมตช์ล่าสุดคืออะไร
+function renderSummary(matches) {
+  matchCountEl.textContent = matches.length;
+  clearAllBtn.disabled = matches.length === 0;
+
+  if (matches.length === 0) {
+    lastSavedEl.textContent = 'ยังไม่มีข้อมูล — กรอกแมตช์แรกได้เลย';
+    return;
+  }
+
+  const last = matches[matches.length - 1];
+  const resultText = { win: 'ชนะ', loss: 'แพ้', draw: 'เสมอ' }[last.result] ?? last.result;
+  lastSavedEl.textContent = `ล่าสุด: ${last.map} · ${last.date} · K/D ${last.kd} · ${resultText}`;
+}
+
+function showPreview(match, title) {
+  previewTitle.textContent = title;
   previewJson.textContent = JSON.stringify(match, null, 2);
   preview.hidden = false;
+}
+
+function showWarning(message) {
+  storageWarning.textContent = message;
+  storageWarning.hidden = false;
 }

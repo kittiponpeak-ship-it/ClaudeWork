@@ -9,10 +9,21 @@
 <body>
   <header class="site-header">
     <h1>CS2 Match Tracker</h1>
-    <p class="subtitle">กรอกสถิติหลังจบแต่ละแมตช์ — Milestone 1: ฟอร์ม + ตรวจข้อมูล</p>
+    <p class="subtitle">กรอกสถิติหลังจบแต่ละแมตช์ — Milestone 2: เซฟลง localStorage</p>
   </header>
 
   <main>
+    <!-- แถบสถานะ: อ่านจาก localStorage ตอนหน้าโหลด -->
+    <section class="card storage-bar">
+      <div>
+        <p class="count"><strong id="match-count">0</strong> แมตช์ในเครื่องนี้</p>
+        <p class="muted" id="last-saved"></p>
+      </div>
+      <button type="button" id="clear-all" class="btn btn--danger">ล้างข้อมูลทั้งหมด</button>
+    </section>
+
+    <p id="storage-warning" class="warning" hidden></p>
+
     <!-- ฟอร์มหลัก: novalidate ปิด popup ของเบราว์เซอร์ เพื่อให้เราคุมข้อความ error เอง -->
     <form id="match-form" class="card" novalidate>
       <div class="grid">
@@ -96,11 +107,11 @@
       </div>
     </form>
 
-    <!-- กล่องพรีวิว: โชว์ object ที่เพิ่งสร้าง เผื่อไม่ได้เปิด DevTools -->
+    <!-- กล่องพรีวิว: โชว์แมตช์ล่าสุดที่อยู่ใน localStorage -->
     <section id="preview" class="card preview" hidden>
-      <h2>ข้อมูลที่อ่านได้จากฟอร์ม</h2>
-      <p class="note">ยังไม่ได้เซฟลงที่ไหน — ตอนนี้แค่ <code>console.log</code> ออกมาดู
-        (การเซฟจริงจะทำใน Milestone 2 ด้วย localStorage)</p>
+      <h2 id="preview-title">แมตช์ล่าสุดที่บันทึกไว้</h2>
+      <p class="note">เก็บอยู่ใน localStorage ของเบราว์เซอร์ ใต้ key <code>cs2-matches</code>
+        — ปิดแท็บหรือ refresh แล้วข้อมูลยังอยู่ (ตารางเต็ม ๆ จะทำใน Milestone 3)</p>
       <pre id="preview-json"></pre>
     </section>
   </main>
